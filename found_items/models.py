@@ -1,11 +1,12 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 class FoundItems(models.Model):
-    user        = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='found_items')
+    user        = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='found_items', default=1)
     title       = models.CharField(max_length=255)
     description = models.TextField()
-    category    = models.CharField(max_length=100)
+    category    = models.CharField(max_length=100, default='Unknown')
     brand       = models.CharField(max_length=100, blank=True, null=True)
     color       = models.CharField(max_length=100, blank=True, null=True)
     location    = models.CharField(max_length=255)         # human readable address
@@ -14,7 +15,7 @@ class FoundItems(models.Model):
     date        = models.DateField()
     time        = models.TimeField()
     image       = models.ImageField(upload_to='found_items_images/', blank=True, null=True)
-    created_at  = models.DateTimeField(auto_now_add=True)
+    created_at  = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.title} - {self.user}"
