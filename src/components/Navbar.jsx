@@ -1,27 +1,33 @@
 import React from 'react';
-import { Bell, User, LogOut } from 'lucide-react';
+import { Bell, User, LogOut, MessageSquare } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { ShieldLogo } from './ShieldLogo';
 
 export const Navbar = () => {
-  const { isLoggedIn, navigateTo, handleLogout } = useAppContext();
+  const { isLoggedIn, navigateTo, handleLogout, unreadMessagesCount, unreadNotificationsCount } = useAppContext();
 
   return (
     <nav className="navbar">
-      <div className="nav-brand" onClick={() => navigateTo('home')}>
+      <div className="nav-brand" onClick={() => navigateTo(isLoggedIn ? 'dashboard' : 'home')}>
         <ShieldLogo />
-        <span className="brand-text">LostFound.ai</span>
+        <span className="brand-text">Lost&Found</span>
       </div>
       {isLoggedIn ? (
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-           <Bell size={20} style={{ color: 'var(--text-gray)', cursor: 'pointer' }} onClick={() => navigateTo('notifications')} />
+        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+           <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigateTo('notifications')}>
+             <Bell size={20} style={{ color: 'var(--text-gray)' }} />
+             {unreadNotificationsCount > 0 && <span className="icon-badge">{unreadNotificationsCount}</span>}
+           </div>
+           <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigateTo('messages')}>
+             <MessageSquare size={20} style={{ color: 'var(--text-gray)' }} />
+             {unreadMessagesCount > 0 && <span className="icon-badge">{unreadMessagesCount}</span>}
+           </div>
            <User size={20} style={{ color: 'var(--text-gray)', cursor: 'pointer' }} onClick={() => navigateTo('account-settings')} />
            <LogOut size={20} style={{ color: 'var(--text-gray)', cursor: 'pointer' }} onClick={handleLogout} />
         </div>
       ) : (
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }} onClick={() => navigateTo('login')}>Login</span>
-          <button className="btn-nav-register" onClick={() => navigateTo('register')}>Get Started</button>
         </div>
       )}
     </nav>

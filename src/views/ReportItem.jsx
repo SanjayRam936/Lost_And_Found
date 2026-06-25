@@ -13,7 +13,21 @@ export const ReportItem = () => {
            <p>Provide details to help our AI match it.</p>
          </div>
          <form className="report-form" onSubmit={handleReportSubmit}>
-            <div className="form-group">
+             <div className="type-selector" style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
+                <div 
+                   onClick={() => setReportForm({...reportForm, type: 'lost'})}
+                   style={{ flex: 1, padding: '1rem', textAlign: 'center', border: '1px solid var(--border-light)', borderRadius: '8px', cursor: 'pointer', backgroundColor: reportForm.type === 'lost' ? 'var(--primary-light)' : 'white', borderColor: reportForm.type === 'lost' ? 'var(--primary)' : 'var(--border-light)' }}
+                >
+                   <span style={{ fontWeight: '600', color: reportForm.type === 'lost' ? 'var(--primary)' : 'var(--text-gray)' }}>Lost an Item</span>
+                </div>
+                <div 
+                   onClick={() => setReportForm({...reportForm, type: 'found'})}
+                   style={{ flex: 1, padding: '1rem', textAlign: 'center', border: '1px solid var(--border-light)', borderRadius: '8px', cursor: 'pointer', backgroundColor: reportForm.type === 'found' ? 'var(--primary-light)' : 'white', borderColor: reportForm.type === 'found' ? 'var(--primary)' : 'var(--border-light)' }}
+                >
+                   <span style={{ fontWeight: '600', color: reportForm.type === 'found' ? 'var(--primary)' : 'var(--text-gray)' }}>Found an Item</span>
+                </div>
+             </div>
+             <div className="form-group">
                <label className="form-label">Item Title</label>
                <input type="text" className="form-input" placeholder="e.g. Black Wallet" required value={reportForm.title} onChange={e => setReportForm({...reportForm, title: e.target.value})} />
             </div>
@@ -31,7 +45,7 @@ export const ReportItem = () => {
                <input type="text" className="form-input" placeholder="Where was it?" required value={reportForm.location} onChange={e => setReportForm({...reportForm, location: e.target.value})} />
             </div>
             <div className="form-group">
-               <label className="form-label">Photo (Optional but recommended)</label>
+               <label className="form-label">Photo {reportForm.type === 'lost' ? '(Optional)' : '(Required)'}</label>
                <div className="upload-area">
                  <ImagePlus size={32} color="var(--primary)" />
                  <div className="upload-title">Click to upload</div>

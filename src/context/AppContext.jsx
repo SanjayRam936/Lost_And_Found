@@ -7,6 +7,7 @@ export const useAppContext = () => useContext(AppContext);
 export const AppProvider = ({ children }) => {
   // State Management
   const [currentView, setCurrentView] = useState('home');
+  const [currentParams, setCurrentParams] = useState({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,12 +41,22 @@ export const AppProvider = ({ children }) => {
 
   // Notifications State
   const [notificationsRead, setNotificationsRead] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, type: 'match', title: 'AI Match Found', time: '10 mins ago', read: false },
+    { id: 2, type: 'message', title: 'New Message', time: '1 hour ago', read: false }
+  ]);
+  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
   // Chat/Messages State
+  const [conversations, setConversations] = useState([
+    { id: 1, matchId: 1, name: 'Sarah M.', item: 'Black Leather Wallet', lastMessage: 'Thank you so much!', time: '2:50 PM', unread: 1, isOnline: true }
+  ]);
+  const unreadMessagesCount = conversations.reduce((acc, conv) => acc + conv.unread, 0);
+
   const [chatMessages, setChatMessages] = useState([
     { id: 1, type: 'received', text: "Hi! I found your black Bellroy wallet near the South Entrance. I've handed it over to the Campus Security Desk.", time: "2:45 PM" },
     { id: 2, type: 'sent', text: "Thank you so much! I'll head over to the security desk now to pick it up. Did you leave any specific reference number?", time: "2:48 PM" },
-    { id: 3, type: 'received', text: "No reference number, just show them this verified match screen. They know to expect you!", time: "2:50 PM" }
+    { id: 3, type: 'received', text: "No reference number, just show them this verified match screen. They know to expect you!", time: "2:50 PM", read: true }
   ]);
   const [chatInput, setChatInput] = useState('');
   const imageInputRef = useRef(null);
@@ -59,12 +70,17 @@ export const AppProvider = ({ children }) => {
     setChatInput('');
   };
 
+  const handleDeleteMessage = (id) => {
+    setChatMessages(chatMessages.filter(m => m.id !== id));
+  };
+
   const handleSendAttachment = (type, e) => {
      let text = '';
-     if(type === 'image') text = 'Sent an image attachment 📷';
-     if(type === 'file') text = 'Sent a document 📄';
+     if(type === 'image' || type === 'photo') text = 'Sent a photo 📷';
+     if(type === 'video') text = 'Sent a video 🎥';
+     if(type === 'file' || type === 'document') text = 'Sent a document 📄';
      if(type === 'location') text = 'Shared live location 📍';
-     if(type === 'reward') text = 'Sent $50 Reward 🎁';
+     if(type === 'reward') text = 'Sent a Reward 🎁';
 
      const newMsg = { id: Date.now(), type: 'sent', text: text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), isSystem: type === 'reward' };
      setChatMessages([...chatMessages, newMsg]);
@@ -112,6 +128,25 @@ export const AppProvider = ({ children }) => {
     if (activeFilter === 'resolved') return r.status === 'resolved';
     return r.type === activeFilter;
   });
+  // Escrow Timeline State
+  const [escrowTimeline, setEscrowTimeline] = useState({
+    paymentSecured: false,
+    handoverConfirmed: false,
+    rewardReleased: false
+  });
+
+  const confirmItemReceived = () => {
+    setEscrowTimeline(prev => ({ ...prev, paymentSecured: true, handoverConfirmed: true }));
+    navigateTo('rewards');
+  };
+
+  const confirmRewardPayment = () => {
+    setEscrowTimeline(prev => ({ ...prev, rewardReleased: true }));
+    // Dispatch notification to finder
+    const newNotif = { id: Date.now(), type: 'reward', title: 'You have received a reward for returning an item.', time: 'Just now', read: false };
+    setNotifications(prev => [newNotif, ...prev]);
+    navigateTo('rewards');
+  };
 
   // Navigation Handlers
   const navigateTo = (view, e = null, params = null) => {
@@ -122,6 +157,7 @@ export const AppProvider = ({ children }) => {
 
     setTimeout(() => {
       setCurrentView(view);
+      setCurrentParams(params || {});
       
       if (params?.regType) setRegType(params.regType);
       
@@ -129,7 +165,7 @@ export const AppProvider = ({ children }) => {
         setReportForm({ id: null, type: 'lost', category: '', title: '', color: '', description: '', date: '', time: '', location: '', hiddenDetail: '', image: null });
       }
 
-      if (view === 'match-detail') {
+      if (view === 'match-detail' || view === 'claim-flow') {
         setClaimStep('initial');
       }
 
@@ -138,7 +174,7 @@ export const AppProvider = ({ children }) => {
       }
       
       setIsLoading(false);
-    }, 600);
+    }, 400); // reduced from 600 for smoother navigation
   };
 
   const handleLoginSubmit = (e) => {
@@ -207,9 +243,17 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const handleRejectMatch = (id) => {
+    if(window.confirm('This match will be removed. Proceed?')) {
+      setReports(reports.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+      alert("This match has been removed.");
+      navigateTo('my-reports');
+    }
+  };
+
   return (
     <AppContext.Provider value={{
-      currentView, setCurrentView, navigateTo,
+      currentView, setCurrentView, currentParams, setCurrentParams, navigateTo,
       isLoggedIn, setIsLoggedIn, handleLoginSubmit, handleLogout,
       isAdmin, setIsAdmin, handleAdminLoginSubmit,
       isLoading, setIsLoading,
@@ -225,15 +269,17 @@ export const AppProvider = ({ children }) => {
       
       activeFilter, setActiveFilter,
       isBankLinked, setIsBankLinked, paymentMethod, setPaymentMethod,
-      notificationsRead, setNotificationsRead,
+      notificationsRead, setNotificationsRead, notifications, unreadNotificationsCount,
       
-      chatMessages, setChatMessages, chatInput, setChatInput, handleSendMessage, handleSendAttachment,
+      conversations, unreadMessagesCount,
+      chatMessages, setChatMessages, chatInput, setChatInput, handleSendMessage, handleSendAttachment, handleDeleteMessage,
       imageInputRef, fileInputRef,
       
       isAuthorized, setIsAuthorized, claimStep, setClaimStep, showSecuritySection, setShowSecuritySection,
       
       reports, setReports, reportForm, setReportForm, filteredReports,
-      handleReportSubmit, handleEditReport, handleDeleteReport
+      handleReportSubmit, handleEditReport, handleDeleteReport, handleRejectMatch,
+      escrowTimeline, setEscrowTimeline, confirmItemReceived, confirmRewardPayment
     }}>
       {children}
     </AppContext.Provider>

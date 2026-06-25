@@ -6,6 +6,8 @@ import { getCategoryIcon, getStatusBadge } from '../utils/helpers';
 export const MyReports = () => {
   const { activeFilter, setActiveFilter, filteredReports, handleEditReport, handleDeleteReport, navigateTo } = useAppContext();
 
+  const displayReports = filteredReports.filter(r => r.status !== 'rejected');
+
   return (
     <div className="dashboard-wrapper">
        <div className="dashboard-container">
@@ -19,7 +21,7 @@ export const MyReports = () => {
             <button className={`filter-chip ${activeFilter === 'found' ? 'active' : ''}`} onClick={() => setActiveFilter('found')}>Found Items</button>
          </div>
          <div className="report-list">
-            {filteredReports.map(r => (
+            {displayReports.map(r => (
                <div className="report-card" key={r.id}>
                  <div className="report-card-header">
                    <div className="report-category">{getCategoryIcon(r.category)} {r.category}</div>
@@ -37,11 +39,11 @@ export const MyReports = () => {
                    </div>
                  </div>
                  {r.status === 'matched' && (
-                    <button className="btn-card-action btn-purple-solid" onClick={() => navigateTo('match-detail')}>Review Match</button>
+                    <button className="btn-card-action btn-purple-solid" onClick={() => navigateTo('match-detail', null, { matchId: r.id })}>Review Match</button>
                  )}
                </div>
             ))}
-            {filteredReports.length === 0 && (
+            {displayReports.length === 0 && (
                <div style={{textAlign: 'center', padding: '3rem 0', color: 'var(--text-gray)'}}>No reports found.</div>
             )}
          </div>

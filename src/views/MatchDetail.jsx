@@ -3,7 +3,8 @@ import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 export const MatchDetail = () => {
-  const { navigateTo, setClaimStep } = useAppContext();
+  const { navigateTo, currentParams, handleRejectMatch } = useAppContext();
+  const matchId = currentParams?.matchId || 1;
 
   return (
     <div className="dashboard-wrapper">
@@ -23,8 +24,8 @@ export const MatchDetail = () => {
                 <span className="match-tag tag-gray">Color: Black</span>
              </div>
              <p style={{fontSize: '0.9rem', marginBottom: '1.5rem', color: 'var(--text-gray)'}}>We found an item matching your description reported 2 hours after your report.</p>
-             <button className="btn-submit" onClick={() => setClaimStep('challenge')} style={{marginTop: 0, marginBottom: '1rem'}}>Initiate Claim</button>
-             <button className="btn-outline-reject">Not My Item</button>
+             <button className="btn-submit" onClick={() => navigateTo('claim-flow', null, { matchId })} style={{marginTop: 0, marginBottom: '1rem'}}>Initiate My Item</button>
+             <button className="btn-outline-reject" onClick={() => handleRejectMatch(matchId)}>Not My Item</button>
           </div>
        </div>
     </div>

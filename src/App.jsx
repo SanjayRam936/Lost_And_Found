@@ -12,6 +12,14 @@ import { MatchDetail } from './views/MatchDetail';
 import { Profile } from './views/Profile';
 import { AdminDashboard } from './views/AdminDashboard';
 import { Notifications } from './views/Notifications';
+import { Messages } from './views/Messages';
+import { ChatScreen } from './views/ChatScreen';
+import { ClaimFlow } from './views/ClaimFlow';
+import { Rewards } from './views/Rewards';
+import { FinderReward } from './views/FinderReward';
+import { RewardPayment } from './views/RewardPayment';
+import { LinkBank } from './views/LinkBank';
+import { Footer } from './components/Footer';
 
 const ViewRouter = () => {
   const { currentView, isLoading } = useAppContext();
@@ -36,6 +44,13 @@ const ViewRouter = () => {
     case 'admin-dashboard': return <AdminDashboard />;
     case 'admin-login': return <Login />;
     case 'notifications': return <Notifications />;
+    case 'messages': return <Messages />;
+    case 'chat': return <ChatScreen />;
+    case 'claim-flow': return <ClaimFlow />;
+    case 'rewards': return <Rewards />;
+    case 'reward-payment': return <RewardPayment />;
+    case 'finder-reward': return <FinderReward />;
+    case 'link-bank': return <LinkBank />;
     default: return <Home />;
   }
 };
@@ -46,8 +61,10 @@ const AppContent = () => {
   return (
     <div className="app-container">
       <Navbar />
-      <ViewRouter />
-      <BottomNav />
+      <div className="main-content" style={{ minHeight: 'calc(100vh - 140px)' }}>
+        <ViewRouter />
+      </div>
+      {isLoggedIn ? <BottomNav /> : <Footer />}
     </div>
   );
 };
