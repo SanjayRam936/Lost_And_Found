@@ -59,9 +59,9 @@ const AppContent = () => {
   const { currentView, isLoggedIn } = useAppContext();
   
   return (
-    <div className="app-container">
+    <div className={`app-container ${isLoggedIn ? 'has-bottom-nav' : ''}`}>
       <Navbar />
-      <div className="main-content" style={{ minHeight: 'calc(100vh - 140px)' }}>
+      <div className="main-content">
         <ViewRouter />
       </div>
       {isLoggedIn ? <BottomNav /> : <Footer />}

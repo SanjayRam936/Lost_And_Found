@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, User, Search, PlusCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, User, Search, PlusCircle, CheckCircle, Phone } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 export const Login = () => {
@@ -27,7 +27,6 @@ export const Login = () => {
           <div className="form-group">
             <div className="label-container">
               <label className="form-label">Password</label>
-              <span className="forgot-link">Forgot?</span>
             </div>
             <div className="input-wrapper">
               <Lock className="input-icon-left" size={18} />
@@ -38,6 +37,9 @@ export const Login = () => {
             </div>
           </div>
           <button type="submit" className="btn-submit">Sign In <ArrowRight size={18}/></button>
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <span className="forgot-link" style={{ fontSize: '0.85rem' }}>Forgot password?</span>
+          </div>
         </form>
         <div className="divider">OR</div>
         <div className="register-text">Don't have an account? <span className="register-link" onClick={() => navigateTo('register')}>Register</span></div>
@@ -54,7 +56,9 @@ export const Register = () => {
     regType, setRegType,
     regName, setRegName,
     regEmail, setRegEmail,
+    regPhone, setRegPhone,
     regPassword, setRegPassword,
+    regConfirmPassword, setRegConfirmPassword,
     showRegPassword,
     passStrength,
     handleLoginSubmit, navigateTo
@@ -89,13 +93,25 @@ export const Register = () => {
           <div className="form-group">
             <div className="input-wrapper">
               <Mail className="input-icon-left" size={18} />
-              <input type="email" className="form-input" placeholder="University Email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} />
+              <input type="email" className="form-input" placeholder="Email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-group">
+            <div className="input-wrapper">
+              <Phone className="input-icon-left" size={18} />
+              <input type="tel" className="form-input" placeholder="Phone Number" value={regPhone} onChange={(e) => setRegPhone(e.target.value)} />
             </div>
           </div>
           <div className="form-group">
             <div className="input-wrapper">
               <Lock className="input-icon-left" size={18} />
               <input type={showRegPassword ? "text" : "password"} className="form-input" placeholder="Password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-group">
+            <div className="input-wrapper">
+              <Lock className="input-icon-left" size={18} />
+              <input type={showRegPassword ? "text" : "password"} className="form-input" placeholder="Confirm Password" value={regConfirmPassword} onChange={(e) => setRegConfirmPassword(e.target.value)} />
             </div>
           </div>
           {regPassword && (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { ShieldCheck, MapPin, CheckCircle, ArrowRight, UserCheck, KeySquare, CheckSquare, IndianRupee } from 'lucide-react';
+import { ShieldCheck, MapPin, CheckCircle, ArrowRight, UserCheck, KeySquare, CheckSquare, IndianRupee, MessageSquare, Phone } from 'lucide-react';
 
 export const ClaimFlow = () => {
   const { navigateTo, currentParams, setClaimStep: setGlobalClaimStep, confirmItemReceived } = useAppContext();
@@ -92,13 +92,46 @@ export const ClaimFlow = () => {
               <p style={{ color: 'var(--text-gray)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>How would you like to receive your item?</p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1rem', border: `2px solid ${handoverMethod === 'direct' ? 'var(--primary)' : 'var(--border-light)'}`, borderRadius: '12px', cursor: 'pointer', backgroundColor: handoverMethod === 'direct' ? 'var(--primary-light)' : 'white' }}>
-                   <input type="radio" name="handover" value="direct" checked={handoverMethod === 'direct'} onChange={() => setHandoverMethod('direct')} style={{ marginTop: '4px' }} />
-                   <div>
-                     <div style={{ fontWeight: '700', color: 'var(--text-dark)' }}>Direct Meetup</div>
-                     <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)' }}>Meet securely in a public place.</div>
+                 <div 
+                   onClick={() => setHandoverMethod('direct')}
+                   style={{ 
+                     display: 'flex', 
+                     flexDirection: 'column', 
+                     padding: '1rem', 
+                     border: `2px solid ${handoverMethod === 'direct' ? 'var(--primary)' : 'var(--border-light)'}`, 
+                     borderRadius: '12px', 
+                     cursor: 'pointer', 
+                     backgroundColor: handoverMethod === 'direct' ? 'var(--primary-light)' : 'white',
+                     transition: 'all 0.3s ease'
+                   }}
+                 >
+                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                     <input type="radio" name="handover" value="direct" checked={handoverMethod === 'direct'} onChange={() => setHandoverMethod('direct')} style={{ marginTop: '4px' }} onClick={(e) => e.stopPropagation()} />
+                     <div>
+                       <div style={{ fontWeight: '700', color: 'var(--text-dark)' }}>Direct Meetup</div>
+                       <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)' }}>Meet securely in a public place.</div>
+                     </div>
                    </div>
-                 </label>
+                   
+                   <div className={`meetup-accordion ${handoverMethod === 'direct' ? 'expanded' : ''}`}>
+                     <div className="meetup-actions">
+                       <button 
+                         className="btn-meetup-action" 
+                         onClick={(e) => { e.stopPropagation(); navigateTo('chat'); }}
+                       >
+                         <MessageSquare size={18} />
+                         Message
+                       </button>
+                       <button 
+                         className="btn-meetup-action" 
+                         onClick={(e) => { e.stopPropagation(); window.location.href = 'tel:+1234567890'; }}
+                       >
+                         <Phone size={18} />
+                         Call
+                       </button>
+                     </div>
+                   </div>
+                 </div>
 
                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1rem', border: `2px solid ${handoverMethod === 'admin' ? 'var(--primary)' : 'var(--border-light)'}`, borderRadius: '12px', cursor: 'pointer', backgroundColor: handoverMethod === 'admin' ? 'var(--primary-light)' : 'white' }}>
                    <input type="radio" name="handover" value="admin" checked={handoverMethod === 'admin'} onChange={() => setHandoverMethod('admin')} style={{ marginTop: '4px' }} />
