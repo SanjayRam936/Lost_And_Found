@@ -49,12 +49,12 @@ export const ReportItem = () => {
                <label className="form-label">Location</label>
                <input type="text" className="form-input" placeholder="Where was it?" required value={reportForm.location} onChange={e => setReportForm({...reportForm, location: e.target.value})} />
             </div>
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div className="date-time-row">
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                  <label className="form-label">Date {reportForm.type === 'lost' ? <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span> : ''}</label>
                  <input 
                    type="date" 
-                   className="form-input" 
+                   className="form-input date-time-input" 
                    required={reportForm.type === 'found'} 
                    value={reportForm.date || ''} 
                    onChange={e => setReportForm({...reportForm, date: e.target.value})} 
@@ -64,7 +64,7 @@ export const ReportItem = () => {
                  <label className="form-label">Time {reportForm.type === 'lost' ? <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span> : ''}</label>
                  <input 
                    type="time" 
-                   className="form-input" 
+                   className="form-input date-time-input" 
                    required={reportForm.type === 'found'} 
                    value={reportForm.time || ''} 
                    onChange={e => setReportForm({...reportForm, time: e.target.value})} 
