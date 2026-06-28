@@ -105,6 +105,51 @@ export const ReportItem = () => {
                    </span>
                </div>
             </div>
+            {reportForm.type === 'found' && (
+              <>
+                <div className="form-group">
+                  <label className="form-label" style={{ marginBottom: '1rem', display: 'block' }}>Handover Method</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1rem', border: `2px solid ${reportForm.handoverMethod === 'direct' ? 'var(--primary)' : 'var(--border-light)'}`, borderRadius: '12px', cursor: 'pointer', backgroundColor: reportForm.handoverMethod === 'direct' ? 'var(--primary-light)' : 'white' }}>
+                       <input type="radio" name="handover" value="direct" checked={reportForm.handoverMethod === 'direct'} onChange={() => setReportForm({...reportForm, handoverMethod: 'direct'})} style={{ marginTop: '4px' }} />
+                       <div>
+                         <div style={{ fontWeight: '700', color: 'var(--text-dark)' }}>Direct Meetup</div>
+                         <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)' }}>Meet securely in a public place.</div>
+                       </div>
+                     </label>
+                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1rem', border: `2px solid ${reportForm.handoverMethod === 'police' ? 'var(--primary)' : 'var(--border-light)'}`, borderRadius: '12px', cursor: 'pointer', backgroundColor: reportForm.handoverMethod === 'police' ? 'var(--primary-light)' : 'white' }}>
+                       <input type="radio" name="handover" value="police" checked={reportForm.handoverMethod === 'police'} onChange={() => setReportForm({...reportForm, handoverMethod: 'police'})} style={{ marginTop: '4px' }} />
+                       <div>
+                         <div style={{ fontWeight: '700', color: 'var(--text-dark)' }}>Police Station</div>
+                         <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)' }}>For high-value items.</div>
+                       </div>
+                     </label>
+                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1rem', border: `2px solid ${reportForm.handoverMethod === 'admin' ? 'var(--primary)' : 'var(--border-light)'}`, borderRadius: '12px', cursor: 'pointer', backgroundColor: reportForm.handoverMethod === 'admin' ? 'var(--primary-light)' : 'white' }}>
+                       <input type="radio" name="handover" value="admin" checked={reportForm.handoverMethod === 'admin'} onChange={() => setReportForm({...reportForm, handoverMethod: 'admin'})} style={{ marginTop: '4px' }} />
+                       <div>
+                         <div style={{ fontWeight: '700', color: 'var(--text-dark)' }}>Institution / Admin Desk</div>
+                         <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)' }}>Drop-off at the main office.</div>
+                       </div>
+                     </label>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ backgroundColor: 'var(--bg-alt)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                   <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Reward Preference</label>
+                   <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)', marginBottom: '1rem' }}>Would you like to be offered a reward if the owner chooses to give one?</p>
+                   <div style={{ display: 'flex', gap: '1rem' }}>
+                     <label style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0.75rem', border: `2px solid ${reportForm.wantsReward ? 'var(--primary)' : 'var(--border-light)'}`, borderRadius: '8px', cursor: 'pointer', backgroundColor: reportForm.wantsReward ? 'var(--primary-light)' : 'white', fontWeight: '600', color: reportForm.wantsReward ? 'var(--primary)' : 'var(--text-gray)' }}>
+                       <input type="radio" name="reward" value="yes" checked={reportForm.wantsReward} onChange={() => setReportForm({...reportForm, wantsReward: true})} style={{ display: 'none' }} />
+                       Yes, Opt-In
+                     </label>
+                     <label style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0.75rem', border: `2px solid ${!reportForm.wantsReward ? 'var(--primary)' : 'var(--border-light)'}`, borderRadius: '8px', cursor: 'pointer', backgroundColor: !reportForm.wantsReward ? 'var(--primary-light)' : 'white', fontWeight: '600', color: !reportForm.wantsReward ? 'var(--primary)' : 'var(--text-gray)' }}>
+                       <input type="radio" name="reward" value="no" checked={!reportForm.wantsReward} onChange={() => setReportForm({...reportForm, wantsReward: false})} style={{ display: 'none' }} />
+                       No, Thank You
+                     </label>
+                   </div>
+                </div>
+              </>
+            )}
             <button type="submit" className="btn-submit">Submit Report</button>
             <button type="button" className="btn-cancel" onClick={() => navigateTo('dashboard')}>Cancel</button>
          </form>

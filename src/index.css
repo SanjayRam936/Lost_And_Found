@@ -723,3 +723,155 @@
     from { transform: translate(-50%, -50%) scale(0); opacity: 1; }
     to { transform: translate(-50%, -50%) scale(2); opacity: 0; }
   }
+/* --- CLAIM & HANDOVER FLOW STYLES --- */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+  border-radius: 16px;
+  padding: 2rem;
+}
+
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1), 0 0 15px rgba(3, 92, 67, 0.2);
+  border-color: var(--primary);
+}
+
+.claim-otp-display {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: 0.5em;
+  color: var(--text-dark);
+  text-align: center;
+  padding: 1.5rem;
+  background-color: var(--bg-alt);
+  border-radius: 12px;
+  border: 1px dashed var(--border-light);
+  margin-bottom: 1.5rem;
+}
+
+.claim-otp-input-container {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.claim-otp-input {
+  width: 50px;
+  height: 60px;
+  font-size: 2rem;
+  text-align: center;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  outline: none;
+  font-weight: 700;
+  color: var(--text-dark);
+  transition: all 0.2s;
+  background-color: var(--bg-alt);
+}
+
+.claim-otp-input:focus {
+  border-color: var(--primary);
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(3, 92, 67, 0.1);
+}
+
+.timeline-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 2rem 0;
+  position: relative;
+}
+
+.timeline-container::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background-color: var(--border-light);
+  z-index: 0;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: white;
+  border: 2px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light);
+}
+
+.timeline-item.completed .timeline-icon {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.timeline-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.timeline-item:not(.completed) .timeline-text {
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.success-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}

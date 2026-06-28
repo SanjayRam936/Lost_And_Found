@@ -92,6 +92,18 @@ export const AppProvider = ({ children }) => {
   const [isAuthorized, setIsAuthorized] = useState(true);
   const [claimStep, setClaimStep] = useState('initial');
 
+  // Claim & Handover Flow States
+  const [claimRole, setClaimRole] = useState('owner'); // 'owner' or 'finder' for demo purposes
+  const [generatedOtp, setGeneratedOtp] = useState('482913');
+  const [handoverMethod, setHandoverMethod] = useState(''); // 'police' or 'custom'
+  const [policeStationDetails, setPoliceStationDetails] = useState({
+    name: 'Central Police Station',
+    address: '123 Safety Ave, District 1',
+    phone: '+1 (555) 123-4567',
+    hours: '24/7'
+  });
+  const [customLocation, setCustomLocation] = useState('');
+
   // Security Section Visibility State
   const [showSecuritySection, setShowSecuritySection] = useState(true);
 
@@ -119,7 +131,7 @@ export const AppProvider = ({ children }) => {
   ]);
 
   const [reportForm, setReportForm] = useState({
-    id: null, type: 'lost', category: '', title: '', color: '', description: '', date: '', time: '', location: '', hiddenDetail: '', image: null
+    id: null, type: 'lost', category: '', title: '', color: '', description: '', date: '', time: '', location: '', image: null, handoverMethod: 'direct', wantsReward: false
   });
 
   // Filtering Logic
@@ -162,10 +174,10 @@ export const AppProvider = ({ children }) => {
       if (params?.regType) setRegType(params.regType);
       
       if (view === 'report' && !params?.editMode) {
-        setReportForm({ id: null, type: 'lost', category: '', title: '', color: '', description: '', date: '', time: '', location: '', hiddenDetail: '', image: null });
+        setReportForm({ id: null, type: 'lost', category: '', title: '', color: '', description: '', date: '', time: '', location: '', image: null, handoverMethod: 'direct', wantsReward: false });
       }
 
-      if (view === 'match-detail' || view === 'claim-flow') {
+      if (view === 'match-detail') {
         setClaimStep('initial');
       }
 
@@ -279,7 +291,9 @@ export const AppProvider = ({ children }) => {
       
       reports, setReports, reportForm, setReportForm, filteredReports,
       handleReportSubmit, handleEditReport, handleDeleteReport, handleRejectMatch,
-      escrowTimeline, setEscrowTimeline, confirmItemReceived, confirmRewardPayment
+      escrowTimeline, setEscrowTimeline, confirmItemReceived, confirmRewardPayment,
+      claimRole, setClaimRole, generatedOtp, setGeneratedOtp, handoverMethod, setHandoverMethod,
+      policeStationDetails, setPoliceStationDetails, customLocation, setCustomLocation
     }}>
       {children}
     </AppContext.Provider>
