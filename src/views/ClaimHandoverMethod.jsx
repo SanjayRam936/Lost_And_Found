@@ -44,24 +44,7 @@ export const ClaimHandoverMethod = () => {
             </div>
           </div>
 
-          <div className="glass-card hover-lift fade-in" onClick={() => handleSelectMethod('custom')} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '2rem', animationDelay: '0.1s' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ backgroundColor: 'var(--purple-light)', padding: '12px', borderRadius: '12px' }}>
-                <MapPin size={28} color="var(--purple)" />
-              </div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-dark)', margin: 0 }}>
-                Meet at Custom Location
-              </h2>
-            </div>
-            <p style={{ color: 'var(--text-gray)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>
-              Choose a safe meeting location (like a cafe or campus desk) for the owner to meet you in person.
-            </p>
-            <div style={{ alignSelf: 'flex-start', marginTop: '0.5rem' }}>
-              <button className="btn-primary" style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--purple)', borderColor: 'var(--purple)' }} onClick={(e) => { e.stopPropagation(); handleSelectMethod('custom'); }}>
-                Continue <ArrowRight size={16} />
-              </button>
-            </div>
-          </div>
+
 
         </div>
 
