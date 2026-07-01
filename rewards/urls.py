@@ -1,8 +1,16 @@
 from django.urls import path
-from .views import RewardSummaryView, RewardConfirmPaymentView
+from .views import (
+    RewardSummaryView,
+    RewardLinkView,
+    RewardCreateOrderView,
+    RewardVerifyPaymentView,
+    RewardConfirmPaymentView,
+)
 
 urlpatterns = [
-    # Matches the /reward/:claim_id URL schema requested
+    path('webhook/confirm/', RewardConfirmPaymentView.as_view(), name='reward-webhook-confirm'),
     path('<int:claim_id>/', RewardSummaryView.as_view(), name='reward-summary'),
-    path('<int:claim_id>/confirm_payment/', RewardConfirmPaymentView.as_view(), name='reward-confirm-payment'),
+    path('<int:claim_id>/link/', RewardLinkView.as_view(), name='reward-link'),
+    path('<int:claim_id>/order/', RewardCreateOrderView.as_view(), name='reward-order'),
+    path('<int:claim_id>/verify/', RewardVerifyPaymentView.as_view(), name='reward-verify'),
 ]

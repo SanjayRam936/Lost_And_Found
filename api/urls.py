@@ -1,25 +1,19 @@
 from django.urls import path, include
-# pyrefly: ignore [missing-import]
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
+from .views import (
+    AdminStatsView, AdminUsersView, AdminItemsView, AdminMatchesView, AdminClaimsView,
 )
-from user_accounts.views import RegisterView
-from .views import AdminItemsView, AdminMatchesView, AdminClaimsView, AdminSeedView
 
 
 urlpatterns = [
-    #Authentication Routes
-    path('register/', RegisterView.as_view(), name='register'),
-    path('login/', TokenObtainPairView.as_view(), name='login'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    #Authentication Routes (register, login, logout, token refresh, me, change-password)
+    path('', include('user_accounts.urls')),
 
-    #Admin APIs
+    #Admin APIs (staff only)
+    path('admin/stats/', AdminStatsView.as_view(), name='admin-stats'),
+    path('admin/users/', AdminUsersView.as_view(), name='admin-users'),
     path('admin/items/', AdminItemsView.as_view(), name='admin-items'),
     path('admin/matches/', AdminMatchesView.as_view(), name='admin-matches'),
     path('admin/claims/', AdminClaimsView.as_view(), name='admin-claims'),
-    path('admin/seed/', AdminSeedView.as_view(), name='admin-seed-create'),
-    path('admin/seed/clear/', AdminSeedView.as_view(), name='admin-seed-clear'),
 
     #Item Routes
     path('lost-items/', include('lost_items.urls')),
@@ -33,6 +27,9 @@ urlpatterns = [
 
     #Rewards Routes
     path('reward/', include('rewards.urls')),
+
+    #Chat Routes
+    path('chat/', include('chat.urls')),
 
     #Notifications Routes
     path('notifications/', include('notifications.urls')),

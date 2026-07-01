@@ -1,101 +1,154 @@
-from rest_framework import generics, status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from datetime import timedelta
 import random
 
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+
+from matching.models import MatchItem
+from notifications.services import notify
 from .models import Claim
-from .serializers import (
-    ClaimSerializer,
-    ChallengeSerializer,
-    OTPVerifySerializer,
-    HandoverSerializer
-)
+from .serializers import ClaimSerializer, OTPVerifySerializer
 
-class ClaimCreateView(generics.CreateAPIView):
-    queryset = Claim.objects.all()
-    serializer_class = ClaimSerializer
-    # permission_classes = [IsAuthenticated] # Uncomment when auth is ready
 
-class ClaimDetailView(generics.RetrieveAPIView):
-    queryset = Claim.objects.all()
-    serializer_class = ClaimSerializer
-    lookup_field = 'pk'
+def _generate_otp():
+    return str(random.randint(100000, 999999))
 
-class ChallengeSubmitView(APIView):
-    """ Step 1: Submit challenge answer """
-    def post(self, request, pk):
-        claim = get_object_or_404(Claim, pk=pk)
-        serializer = ChallengeSerializer(claim, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            
-            # Here you would typically verify if the answer matches the lost item's hidden details.
-            # Assuming challenge passed for the flow:
-            claim.status = 'CHALLENGE_PASSED'
-            
-            # Generate and send OTP
-            claim.otp = str(random.randint(100000, 999999))
-            claim.otp_sent_at = timezone.now()
-            claim.save()
-            
-            # Note: Integrate actual SMS/Email sending logic here
-            return Response({"message": "Challenge passed. OTP sent."}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class OTPVerifyView(APIView):
-    """ Step 2: Verify the 6-digit OTP """
-    def post(self, request, pk):
-        claim = get_object_or_404(Claim, pk=pk)
+class InitiateClaimView(APIView):
+    """
+    POST /claims/initiate/<match_id>/
+    The Owner (lost-item user) starts the claim. For a DIRECT handover an OTP is
+    generated; for POLICE/INSTITUTION no OTP is created and the claim is marked
+    HANDED_OVER (the Owner is told where to collect the item).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, match_id):
+        match = get_object_or_404(MatchItem, pk=match_id)
+
+        # Only the Owner (who lost the item) may initiate a claim.
+        if request.user != match.lost_item.user:
+            return Response(
+                {"detail": "Only the item owner can initiate this claim."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        handover_type = match.found_item.handover_type
+        claim, created = Claim.objects.get_or_create(
+            match=match,
+            defaults={'handover_type': handover_type},
+        )
+
+        if created:
+            if handover_type == 'DIRECT':
+                claim.otp_code = _generate_otp()
+                claim.status = 'INITIATED'
+                claim.save()
+                notify(
+                    claim.finder, 'CLAIM_UPDATE', 'Handover started',
+                    f'The owner started a handover for "{match.lost_item.title}". '
+                    f'Use the chat to arrange a meetup, then enter their OTP to confirm.',
+                    reference_id=claim.id,
+                )
+            else:
+                claim.status = 'HANDED_OVER'
+                claim.save()
+
+        serializer = ClaimSerializer(claim, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ClaimDetailView(APIView):
+    """GET /claims/<claim_id>/ — Owner sees the OTP code, Finder sees null."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, claim_id):
+        claim = get_object_or_404(Claim, pk=claim_id)
+        if not claim.is_participant(request.user):
+            return Response({"detail": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
+        return Response(ClaimSerializer(claim, context={'request': request}).data)
+
+
+class VerifyOTPView(APIView):
+    """
+    POST /claims/<claim_id>/otp/verify/  — only the Finder submits the OTP.
+    On success the claim (and the underlying match/lost item) is resolved.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, claim_id):
+        claim = get_object_or_404(Claim, pk=claim_id)
+
+        if request.user != claim.finder:
+            return Response(
+                {"detail": "Only the finder can confirm the handover OTP."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if claim.handover_type != 'DIRECT':
+            return Response(
+                {"detail": "This handover does not use an OTP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if claim.otp_verified:
+            return Response({"detail": "Handover already confirmed."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = OTPVerifySerializer(data=request.data)
-        if serializer.is_valid():
-            if claim.status != 'CHALLENGE_PASSED':
-                return Response({"error": "Invalid state for OTP verification."}, status=status.HTTP_400_BAD_REQUEST)
-                
-            provided_otp = serializer.validated_data['otp']
-            if claim.otp == provided_otp:
-                # Check expiration (e.g., 10 minutes)
-                if claim.otp_sent_at and timezone.now() < claim.otp_sent_at + timedelta(minutes=10):
-                    claim.otp_verified = True
-                    claim.status = 'OTP_VERIFIED'
-                    claim.save()
-                    return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
-                return Response({"error": "OTP has expired."}, status=status.HTTP_400_BAD_REQUEST)
-            return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
-class OTPResendView(APIView):
-    """ Step 2: Resend the OTP after 60 seconds """
-    def post(self, request, pk):
-        claim = get_object_or_404(Claim, pk=pk)
-        if claim.status != 'CHALLENGE_PASSED':
-            return Response({"error": "Cannot resend OTP at this stage."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Check if 60 seconds have passed since last OTP
-        if claim.otp_sent_at and timezone.now() < claim.otp_sent_at + timedelta(seconds=60):
-            wait_time = int(60 - (timezone.now() - claim.otp_sent_at).total_seconds())
-            return Response({"error": f"Please wait {wait_time} seconds before resending OTP."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-            
-        # Generate new OTP
-        claim.otp = str(random.randint(100000, 999999))
-        claim.otp_sent_at = timezone.now()
+        if serializer.validated_data['otp'] != claim.otp_code:
+            return Response({"detail": "Incorrect OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Success — resolve the claim and the related records.
+        claim.otp_verified = True
+        claim.otp_verified_at = timezone.now()
+        claim.status = 'RESOLVED'
         claim.save()
-        
-        # Note: Integrate actual SMS/Email sending logic here
-        return Response({"message": "A new OTP has been sent."}, status=status.HTTP_200_OK)
 
-class HandoverSubmitView(APIView):
-    """ Step 3: Select Handover Method """
-    def post(self, request, pk):
-        claim = get_object_or_404(Claim, pk=pk)
-        if claim.status != 'OTP_VERIFIED':
-            return Response({"error": "Must verify OTP before handover selection."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        serializer = HandoverSerializer(claim, data=request.data, partial=True)
-        if serializer.is_valid():
-            # Update status to completed after successful handover selection
-            serializer.save(status='COMPLETED')
-            return Response({"message": "Handover selection confirmed. Claim is complete."}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        match = claim.match
+        match.status = 'RESOLVED'
+        match.save(update_fields=['status'])
+        lost = match.lost_item
+        lost.status = 'RESOLVED'
+        lost.save(update_fields=['status'])
+
+        for u in (claim.owner, claim.finder):
+            notify(
+                u, 'CLAIM_UPDATE', 'Handover confirmed',
+                f'The handover for "{lost.title}" was confirmed successfully.',
+                reference_id=claim.id,
+            )
+
+        return Response(
+            {
+                "detail": "Handover confirmed.",
+                "status": claim.status,
+                "wants_reward": match.found_item.wants_reward,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class RegenerateOTPView(APIView):
+    """POST /claims/<claim_id>/otp/regenerate/ — Owner can refresh the OTP."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, claim_id):
+        claim = get_object_or_404(Claim, pk=claim_id)
+
+        if request.user != claim.owner:
+            return Response(
+                {"detail": "Only the owner can regenerate the OTP."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if claim.handover_type != 'DIRECT' or claim.status != 'INITIATED':
+            return Response(
+                {"detail": "OTP cannot be regenerated for this claim."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        claim.otp_code = _generate_otp()
+        claim.save(update_fields=['otp_code', 'updated_at'])
+        return Response(ClaimSerializer(claim, context={'request': request}).data)

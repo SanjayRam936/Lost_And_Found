@@ -25,4 +25,4 @@ class Notification(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.username} - {self.get_notification_type_display()} - Read: {self.is_read}"
+        return f"{self.user.email} - {self.get_notification_type_display()} - Read: {self.is_read}"

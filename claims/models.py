@@ -1,42 +1,51 @@
 from django.db import models
-from django.conf import settings
-from found_items.models import FoundItems
-from lost_items.models import LostItems
+from matching.models import MatchItem
+
 
 class Claim(models.Model):
+    """
+    A claim is tied to a single AI MatchItem. Per the Section 6 redesign, the
+    AI match itself is the proof of ownership — there is no identity challenge.
+    The OTP is a *handover confirmation* (LPG-cylinder style): the Owner holds
+    the code and reads it aloud at the meetup; the Finder enters it to confirm.
+    OTP does not expire.
+    """
+
     HANDOVER_CHOICES = [
-        ('DIRECT', 'Direct Contact'),
+        ('DIRECT', 'Direct'),
         ('POLICE', 'Police'),
-        ('VENUE', 'Venue Management'),
+        ('INSTITUTION', 'Institution'),
     ]
 
     STATUS_CHOICES = [
-        ('PENDING', 'Pending'),                     # Challenge phase
-        ('CHALLENGE_PASSED', 'Challenge Passed'),   # OTP phase
-        ('OTP_VERIFIED', 'OTP Verified'),           # Handover phase
-        ('COMPLETED', 'Completed'),                 # Claim fully accepted/handover done
-        ('REJECTED', 'Rejected'),                   # Claim rejected
+        ('INITIATED', 'Initiated'),      # DIRECT: OTP generated, awaiting handover
+        ('RESOLVED', 'Resolved'),        # DIRECT: OTP verified, handover done
+        ('HANDED_OVER', 'Handed Over'),  # POLICE/INSTITUTION: no OTP, collect there
     ]
 
-    claimer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='claims')
-    found_item = models.ForeignKey(FoundItems, on_delete=models.CASCADE, related_name='claims')
-    lost_item = models.ForeignKey(LostItems, on_delete=models.SET_NULL, null=True, blank=True, related_name='claims')
+    match = models.OneToOneField(MatchItem, on_delete=models.CASCADE, related_name='claim')
+    handover_type = models.CharField(max_length=20, choices=HANDOVER_CHOICES, default='DIRECT')
 
-    # Step 1: Challenge
-    challenge_answer = models.TextField(blank=True, null=True)
-    
-    # Step 2: OTP Verification
-    otp = models.CharField(max_length=6, blank=True, null=True)
+    otp_code = models.CharField(max_length=6, blank=True, null=True)
     otp_verified = models.BooleanField(default=False)
-    otp_sent_at = models.DateTimeField(blank=True, null=True)
+    otp_verified_at = models.DateTimeField(blank=True, null=True)
 
-    # Step 3: Handover
-    handover_method = models.CharField(max_length=20, choices=HANDOVER_CHOICES, blank=True, null=True)
-
-    # Claim State
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='INITIATED')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def owner(self):
+        """The person who lost the item — holds and reveals the OTP."""
+        return self.match.lost_item.user
+
+    @property
+    def finder(self):
+        """The person who found the item — enters the OTP to confirm handover."""
+        return self.match.found_item.user
+
+    def is_participant(self, user):
+        return user == self.owner or user == self.finder
+
     def __str__(self):
-        return f"Claim by {self.claimer.username} for {self.found_item.title}"
+        return f"Claim #{self.id} for match {self.match_id} ({self.status})"

@@ -18,10 +18,9 @@ class LostItems(models.Model):
     location       = models.CharField(max_length=255)
     latitude       = models.FloatField(blank=True, null=True)
     longitude      = models.FloatField(blank=True, null=True)
-    date           = models.DateField()
-    time           = models.TimeField()
+    date           = models.DateField(blank=True, null=True)
+    time           = models.TimeField(blank=True, null=True)
     image          = models.ImageField(upload_to='lost_items_images/', blank=True, null=True)
-    hidden_details = models.TextField()
     status         = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
     created_at     = models.DateTimeField(default=timezone.now)
 

@@ -1,25 +1,14 @@
 from django.urls import path
 from .views import (
-    ClaimCreateView,
+    InitiateClaimView,
     ClaimDetailView,
-    ChallengeSubmitView,
-    OTPVerifyView,
-    OTPResendView,
-    HandoverSubmitView
+    VerifyOTPView,
+    RegenerateOTPView,
 )
 
 urlpatterns = [
-    # Basic CRUD for claims
-    path('', ClaimCreateView.as_view(), name='claim-create'),
-    path('<int:pk>/', ClaimDetailView.as_view(), name='claim-detail'),
-    
-    # Step 1: Challenge
-    path('<int:pk>/challenge/', ChallengeSubmitView.as_view(), name='claim-challenge'),
-    
-    # Step 2: OTP
-    path('<int:pk>/otp/verify/', OTPVerifyView.as_view(), name='claim-otp-verify'),
-    path('<int:pk>/otp/resend/', OTPResendView.as_view(), name='claim-otp-resend'),
-    
-    # Step 3: Handover
-    path('<int:pk>/handover/', HandoverSubmitView.as_view(), name='claim-handover'),
+    path('initiate/<int:match_id>/', InitiateClaimView.as_view(), name='claim-initiate'),
+    path('<int:claim_id>/', ClaimDetailView.as_view(), name='claim-detail'),
+    path('<int:claim_id>/otp/verify/', VerifyOTPView.as_view(), name='claim-otp-verify'),
+    path('<int:claim_id>/otp/regenerate/', RegenerateOTPView.as_view(), name='claim-otp-regenerate'),
 ]
