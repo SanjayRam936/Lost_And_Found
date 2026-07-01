@@ -1,207 +1,182 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { Gift, IndianRupee, ShieldCheck, CheckCircle } from 'lucide-react';
+import { Gift, IndianRupee, CheckCircle, ExternalLink } from 'lucide-react';
+import * as rewardsApi from '../api/rewards';
+import { apiError } from '../api/client';
 
 export const Rewards = () => {
-  const { navigateTo, escrowTimeline, setEscrowTimeline } = useAppContext();
-  
-  const [rewardAmount, setRewardAmount] = useState('');
-  const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
-  const [paymentDetails, setPaymentDetails] = useState(null);
-  const [showToast, setShowToast] = useState(false);
+  const { navigateTo, currentClaim } = useAppContext();
+  const claimId = currentClaim?.id;
 
-  // Validate the reward amount
-  const isValidAmount = () => {
-    const amount = Number(rewardAmount);
-    return !isNaN(amount) && amount >= 1 && amount <= 100000;
-  };
+  const [reward, setReward] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [amount, setAmount] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const handleAmountChange = (e) => {
-    const value = e.target.value;
-    // Allow empty or digits only
-    if (value === '' || /^\d+$/.test(value)) {
-      setRewardAmount(value);
+  const load = async () => {
+    if (!claimId) { setLoading(false); return; }
+    try {
+      const r = await rewardsApi.getReward(claimId);
+      setReward(r);
+      if (r.amount && Number(r.amount) > 0) setAmount(String(Math.round(Number(r.amount))));
+    } catch (err) {
+      setError(apiError(err, 'Could not load reward.'));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePayment = () => {
-    if (!isValidAmount()) return;
-    
-    // Simulate payment flow
-    setShowToast(true);
-    setTimeout(() => {
-      setShowToast(false);
-      setIsPaymentSuccess(true);
-      setPaymentDetails({
-        amount: rewardAmount,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        txId: 'TXN' + Math.floor(100000000 + Math.random() * 900000000)
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [claimId]);
+
+  const isOwner = reward?.role === 'owner';
+  const released = reward?.escrow_status === 'RELEASED';
+  const validAmount = () => { const n = Number(amount); return n >= 1 && n <= 100000; };
+
+  const handlePay = async () => {
+    if (!validAmount()) return;
+    setBusy(true);
+    setError('');
+    try {
+      await rewardsApi.setRewardAmount(claimId, Number(amount));
+
+      // Demo mode (no Razorpay keys): release straight away via the mock confirm.
+      if (!reward.razorpay_enabled) {
+        await rewardsApi.confirmRewardPayment(claimId);
+        await load();
+        setBusy(false);
+        return;
+      }
+
+      // Create a Razorpay order. If Razorpay became unavailable (503),
+      // fall back to the mock confirmation so the flow still completes.
+      let order;
+      try {
+        order = await rewardsApi.createOrder(claimId);
+      } catch (err) {
+        if (err?.response?.status === 503) {
+          await rewardsApi.confirmRewardPayment(claimId);
+          await load();
+          setBusy(false);
+          return;
+        }
+        throw err;
+      }
+
+      const ok = await rewardsApi.loadRazorpayScript();
+      if (!ok) throw new Error('Could not load Razorpay checkout.');
+
+      const rzp = new window.Razorpay({
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'LostFound.ai',
+        description: `Reward for ${reward.item_title}`,
+        order_id: order.order_id,
+        prefill: { name: reward.owner_name },
+        theme: { color: '#035C43' },
+        handler: async (resp) => {
+          try {
+            await rewardsApi.verifyPayment(claimId, {
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_signature: resp.razorpay_signature,
+            });
+            await load();
+          } catch {
+            setError('Payment captured but verification failed. Please contact support.');
+          } finally {
+            setBusy(false);
+          }
+        },
+        modal: { ondismiss: () => setBusy(false) },
       });
-      // Update global context timeline if needed
-      setEscrowTimeline(prev => ({ ...prev, rewardReleased: true }));
-    }, 1500);
+      rzp.open();
+    } catch (err) {
+      setError(apiError(err, 'Payment could not be completed.'));
+      setBusy(false);
+    }
   };
+
+  if (loading) {
+    return <div className="dashboard-wrapper"><div className="dashboard-container" style={{ textAlign: 'center', padding: '3rem' }}>Loading reward…</div></div>;
+  }
+
+  if (!reward) {
+    return (
+      <div className="dashboard-wrapper"><div className="dashboard-container" style={{ textAlign: 'center', padding: '3rem' }}>
+        {error || 'No reward available for this claim.'}
+        <div style={{ marginTop: '1.5rem' }}><button className="btn-primary" onClick={() => navigateTo('dashboard')}>Back to Dashboard</button></div>
+      </div></div>
+    );
+  }
 
   return (
     <div className="dashboard-wrapper">
       <div className="dashboard-container">
-        
-        {showToast && (
-          <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10B981', color: 'white', padding: '12px 24px', borderRadius: '8px', fontWeight: '600', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-            Reward sent successfully!
-          </div>
-        )}
-
         <div style={{ textAlign: 'center', margin: '2rem 0' }}>
-           <Gift size={48} color="var(--primary)" style={{ marginBottom: '1rem' }} />
-           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '0.5rem' }}>Reward & Escrow</h1>
-           <p style={{ color: 'var(--text-gray)', fontSize: '0.9rem' }}>Pay the promised reward securely. It will be held in escrow and released to the finder.</p>
+          <Gift size={48} color="var(--primary)" style={{ marginBottom: '1rem' }} />
+          <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '0.5rem' }}>Reward</h1>
+          <p style={{ color: 'var(--text-gray)', fontSize: '0.9rem' }}>
+            {isOwner ? 'Send the reward to the finder securely via UPI.' : 'The owner will send your reward via UPI.'}
+          </p>
         </div>
 
-        <div className="white-card" style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--border-light)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px dashed var(--border-light)' }}>
-             <span style={{ color: 'var(--text-gray)', fontWeight: '600' }}>Item</span>
-             <span style={{ fontWeight: '700', color: 'var(--text-dark)' }}>Black Leather Wallet</span>
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px dashed var(--border-light)' }}>
-             <span style={{ color: 'var(--text-gray)', fontWeight: '600' }}>Finder</span>
-             <span style={{ fontWeight: '700', color: 'var(--text-dark)' }}>Sarah M.</span>
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-             <span style={{ color: 'var(--text-gray)', fontWeight: '600', fontSize: '1.1rem' }}>Reward Amount</span>
-             {!isPaymentSuccess ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', width: '100%', maxWidth: '200px' }}>
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-gray)', fontWeight: '600' }}>₹</span>
-                    <input 
-                      type="text" 
-                      value={rewardAmount}
-                      onChange={handleAmountChange}
-                      placeholder="Enter reward amount"
-                      style={{ 
-                        width: '100%', 
-                        padding: '12px 12px 12px 28px', 
-                        border: '1px solid var(--border-light)', 
-                        borderRadius: '8px',
-                        fontSize: '1.1rem',
-                        fontWeight: '700',
-                        color: 'var(--primary)',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
-                      onBlur={(e) => e.target.style.borderColor = 'var(--border-light)'}
-                    />
-                  </div>
-                  {rewardAmount && !isValidAmount() && (
-                    <span style={{ color: 'var(--error)', fontSize: '0.75rem', marginTop: '4px' }}>Please enter a valid amount (₹1 - ₹1,00,000)</span>
-                  )}
-                </div>
-             ) : (
-                <span style={{ fontWeight: '800', color: 'var(--primary)', fontSize: '1.5rem', display: 'flex', alignItems: 'center' }}>
-                  <IndianRupee size={20} /> {Number(paymentDetails.amount).toLocaleString('en-IN')}
-                </span>
-             )}
-           </div>
-        </div>
-
-        {isPaymentSuccess && paymentDetails && (
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #10B981', marginBottom: '2rem', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.1)' }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.5rem', color: '#10B981' }}>
-                <CheckCircle size={24} />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0 }}>Reward Payment Details</h3>
-             </div>
-             
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                   <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)', marginBottom: '4px' }}>Amount Paid</div>
-                   <div style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--text-dark)' }}>₹{Number(paymentDetails.amount).toLocaleString('en-IN')}</div>
-                </div>
-                <div>
-                   <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)', marginBottom: '4px' }}>Payment Status</div>
-                   <div style={{ display: 'inline-flex', padding: '4px 10px', backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' }}>Completed</div>
-                </div>
-                <div>
-                   <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)', marginBottom: '4px' }}>Paid On</div>
-                   <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-dark)' }}>{paymentDetails.date}<br/>{paymentDetails.time}</div>
-                </div>
-                <div>
-                   <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)', marginBottom: '4px' }}>Transaction ID</div>
-                   <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-dark)' }}>{paymentDetails.txId}</div>
-                </div>
-             </div>
+        <div className="white-card" style={{ padding: '1.5rem', marginBottom: '1.5rem', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+          <Row label="Item" value={reward.item_title} />
+          <Row label="Finder" value={reward.finder_name} />
+          <Row label="Owner" value={reward.owner_name} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginTop: '0.5rem' }}>
+            <span style={{ color: 'var(--text-gray)', fontWeight: '600', fontSize: '1.1rem' }}>Reward Amount</span>
+            {isOwner && !released ? (
+              <div style={{ position: 'relative', width: '100%', maxWidth: '200px' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-gray)', fontWeight: '600' }}>₹</span>
+                <input
+                  type="text"
+                  value={amount}
+                  onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setAmount(v); }}
+                  placeholder="Amount"
+                  style={{ width: '100%', padding: '12px 12px 12px 28px', border: '1px solid var(--border-light)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: '700', color: 'var(--primary)', outline: 'none' }}
+                />
+              </div>
+            ) : (
+              <span style={{ fontWeight: '800', color: released ? '#10B981' : 'var(--primary)', fontSize: '1.5rem', display: 'flex', alignItems: 'center' }}>
+                <IndianRupee size={20} /> {Number(reward.amount || 0).toLocaleString('en-IN')}
+              </span>
+            )}
           </div>
-        )}
-
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-dark)', marginBottom: '1.5rem' }}>Escrow Timeline</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                 <div style={{ color: '#10B981' }}>
-                    <CheckCircle size={24} />
-                 </div>
-                 <div>
-                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--text-dark)' }}>Handover Confirmed</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-gray)' }}>Completed</div>
-                 </div>
-              </div>
-              
-              <div style={{ 
-                width: '3px', 
-                height: '30px', 
-                backgroundColor: isPaymentSuccess ? '#10B981' : 'var(--border-light)', 
-                marginLeft: '10px', 
-                marginTop: '-10px', 
-                marginBottom: '-10px',
-                transition: 'background-color 0.5s ease'
-              }}></div>
-              
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', transition: 'all 0.3s ease' }}>
-                 <div style={{ 
-                    color: isPaymentSuccess ? '#10B981' : 'var(--border-light)',
-                    animation: isPaymentSuccess ? 'pulse-glow 1s' : 'none'
-                 }}>
-                    {isPaymentSuccess ? <CheckCircle size={24} /> : <Gift size={24} />}
-                 </div>
-                 <div style={{ opacity: isPaymentSuccess ? 1 : 0.6, transition: 'opacity 0.3s ease' }}>
-                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--text-dark)' }}>Reward Released</div>
-                    {isPaymentSuccess ? (
-                      <div>
-                        <div style={{ fontSize: '0.9rem', color: '#10B981', fontWeight: '600', marginTop: '2px' }}>₹{Number(paymentDetails?.amount).toLocaleString('en-IN')} Successfully Sent</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)', marginTop: '2px' }}>Completed</div>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-gray)' }}>Awaiting payment</div>
-                    )}
-                 </div>
-              </div>
-           </div>
+          {isOwner && !released && amount && !validAmount() && (
+            <div style={{ color: 'var(--error)', fontSize: '0.75rem', marginTop: '6px', textAlign: 'right' }}>Enter ₹1 – ₹1,00,000</div>
+          )}
         </div>
 
-        {!isPaymentSuccess ? (
-          <button 
-            className="btn-submit" 
-            onClick={handlePayment} 
-            disabled={!isValidAmount()}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              gap: '8px',
-              opacity: isValidAmount() ? 1 : 0.5,
-              cursor: isValidAmount() ? 'pointer' : 'not-allowed'
-            }}
-          >
-            Send Reward via UPI
+        <div style={{ marginBottom: '1.5rem' }}>
+          <Row label="Status" value={
+            <span style={{ color: released ? '#10B981' : 'var(--text-gray)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {released && <CheckCircle size={16} />} {released ? 'Released' : 'Awaiting payment'}
+            </span>
+          } />
+        </div>
+
+        {error && <div className="error-text" style={{ marginBottom: '1rem' }}>{error}</div>}
+
+        {released ? (
+          <button className="btn-primary" style={{ width: '100%', padding: '1rem' }} onClick={() => navigateTo('dashboard')}>Done — Back to Dashboard</button>
+        ) : isOwner ? (
+          <button className="btn-submit" disabled={!validAmount() || busy} onClick={handlePay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: validAmount() && !busy ? 1 : 0.5 }}>
+            {busy ? 'Processing…' : reward.razorpay_enabled ? <>Pay Reward via Razorpay <ExternalLink size={16} /></> : 'Send Reward (Demo)'}
           </button>
         ) : (
-          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-            <button className="btn-return-dashboard" onClick={() => navigateTo('dashboard')}>Return to Dashboard</button>
-          </div>
+          <button className="btn-submit" disabled style={{ opacity: 0.6 }}>Awaiting reward from owner</button>
         )}
-
       </div>
     </div>
   );
 };
+
+const Row = ({ label, value }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px dashed var(--border-light)' }}>
+    <span style={{ color: 'var(--text-gray)', fontWeight: '600' }}>{label}</span>
+    <span style={{ fontWeight: '700', color: 'var(--text-dark)' }}>{value}</span>
+  </div>
+);

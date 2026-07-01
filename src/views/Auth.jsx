@@ -3,25 +3,42 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, User, Search, PlusCircle, CheckCir
 import { useAppContext } from '../context/AppContext';
 
 export const Login = () => {
-  const { 
-    email, setEmail, hasEmailError, 
-    password, setPassword, showPassword, setShowPassword, 
-    handleLoginSubmit, navigateTo 
+  const {
+    currentView,
+    email, setEmail,
+    password, setPassword, showPassword, setShowPassword,
+    adminEmail, setAdminEmail, adminPassword, setAdminPassword, showAdminPassword, setShowAdminPassword,
+    handleLoginSubmit, handleAdminLoginSubmit,
+    authError, setAuthError, authLoading, navigateTo,
   } = useAppContext();
+
+  const isAdminLogin = currentView === 'admin-login';
+
+  // Bind to the admin fields/handler when on the admin-login view.
+  const curEmail = isAdminLogin ? adminEmail : email;
+  const setCurEmail = isAdminLogin ? setAdminEmail : setEmail;
+  const curPassword = isAdminLogin ? adminPassword : password;
+  const setCurPassword = isAdminLogin ? setAdminPassword : setPassword;
+  const showPw = isAdminLogin ? showAdminPassword : showPassword;
+  const setShowPw = isAdminLogin ? setShowAdminPassword : setShowPassword;
+  const onSubmit = isAdminLogin ? handleAdminLoginSubmit : handleLoginSubmit;
+
+  React.useEffect(() => { setAuthError(''); }, [currentView, setAuthError]);
 
   return (
     <div className="login-wrapper">
       <div className="login-card">
         <div className="card-header">
-          <h1>Welcome Back</h1>
-          <p>Sign in to continue</p>
+          <h1>{isAdminLogin ? 'Admin Login' : 'Welcome Back'}</h1>
+          <p>{isAdminLogin ? 'Sign in to the admin console' : 'Sign in to continue'}</p>
         </div>
-        <form onSubmit={handleLoginSubmit}>
+        <form onSubmit={onSubmit}>
+          {authError && <div className="error-text" style={{ marginBottom: '1rem' }}>{authError}</div>}
           <div className="form-group">
             <div className="label-container"><label className="form-label">Email</label></div>
-            <div className={`input-wrapper ${hasEmailError ? '' : ''}`}>
+            <div className="input-wrapper">
               <Mail className="input-icon-left" size={18} />
-              <input type="email" className="form-input" placeholder="you@university.edu" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input type="email" className="form-input" placeholder="you@university.edu" value={curEmail} onChange={(e) => setCurEmail(e.target.value)} required />
             </div>
           </div>
           <div className="form-group">
@@ -30,22 +47,33 @@ export const Login = () => {
             </div>
             <div className="input-wrapper">
               <Lock className="input-icon-left" size={18} />
-              <input type={showPassword ? "text" : "password"} className="form-input" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
-              <button type="button" className="input-icon-right" onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              <input type={showPw ? "text" : "password"} className="form-input" placeholder="••••••••" value={curPassword} onChange={(e) => setCurPassword(e.target.value)} required />
+              <button type="button" className="input-icon-right" onClick={() => setShowPw(!showPw)}>
+                {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
-          <button type="submit" className="btn-submit">Sign In <ArrowRight size={18}/></button>
+          <button type="submit" className="btn-submit" disabled={authLoading}>
+            {authLoading ? 'Signing In…' : <>Sign In <ArrowRight size={18}/></>}
+          </button>
           <div style={{ textAlign: 'center', marginTop: '1rem' }}>
             <span className="forgot-link" style={{ fontSize: '0.85rem' }}>Forgot password?</span>
           </div>
         </form>
-        <div className="divider">OR</div>
-        <div className="register-text">Don't have an account? <span className="register-link" onClick={() => navigateTo('register')}>Register</span></div>
-        <div style={{textAlign: 'center', marginTop: '1rem'}}>
-           <span className="register-link" style={{fontSize: '0.8rem'}} onClick={() => navigateTo('admin-login')}>Admin Login</span>
-        </div>
+        {!isAdminLogin && (
+          <>
+            <div className="divider">OR</div>
+            <div className="register-text">Don't have an account? <span className="register-link" onClick={() => navigateTo('register')}>Register</span></div>
+            <div style={{textAlign: 'center', marginTop: '1rem'}}>
+               <span className="register-link" style={{fontSize: '0.8rem'}} onClick={() => navigateTo('admin-login')}>Admin Login</span>
+            </div>
+          </>
+        )}
+        {isAdminLogin && (
+          <div style={{textAlign: 'center', marginTop: '1rem'}}>
+             <span className="register-link" style={{fontSize: '0.8rem'}} onClick={() => navigateTo('login')}>← Back to user login</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -61,7 +89,7 @@ export const Register = () => {
     regConfirmPassword, setRegConfirmPassword,
     showRegPassword, setShowRegPassword,
     passStrength,
-    handleLoginSubmit, navigateTo
+    handleRegisterSubmit, authError, authLoading, navigateTo
   } = useAppContext();
 
   const [errors, setErrors] = React.useState({});
@@ -88,7 +116,7 @@ export const Register = () => {
 
   const validatePassword = (password) => {
     if (!password) return "Password is required.";
-    if (password.length < 6 || password.length > 32) return "Password must be at least 6 characters long.";
+    if (password.length < 8 || password.length > 32) return "Password must be at least 8 characters long.";
     return "";
   };
 
@@ -144,15 +172,15 @@ export const Register = () => {
     setErrors(prev => ({ ...prev, [field]: err }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const nameErr = validateName(regName);
     const emailErr = validateEmail(regEmail);
     const phoneErr = validatePhone(regPhone);
     const passErr = validatePassword(regPassword);
     const confirmErr = validateConfirmPassword(regConfirmPassword, regPassword);
-    
+
     setTouched({
       name: true,
       email: true,
@@ -170,7 +198,14 @@ export const Register = () => {
     });
 
     if (!nameErr && !emailErr && !phoneErr && !passErr && !confirmErr) {
-      navigateTo('login');
+      // On success the context logs the user in and redirects to the dashboard.
+      await handleRegisterSubmit({
+        fullName: regName.trim(),
+        email: regEmail,
+        phone: regPhone,
+        password: regPassword,
+        confirmPassword: regConfirmPassword,
+      });
     }
   };
 
@@ -242,8 +277,11 @@ export const Register = () => {
                <div className="strength-text">{passStrength === 1 ? 'Weak' : passStrength === 2 ? 'Medium' : 'Strong'}</div>
              </div>
           )}
-          <button type="submit" className="btn-submit">Create Account</button>
-          
+          {authError && <div className="error-text" style={{ marginBottom: '1rem' }}>{authError}</div>}
+          <button type="submit" className="btn-submit" disabled={authLoading}>
+            {authLoading ? 'Creating Account…' : 'Create Account'}
+          </button>
+
           <div style={{ textAlign: 'center', marginTop: '1rem' }}>
             <span className="register-text" style={{ fontSize: '0.85rem' }}>
               Already have an account? <span className="register-link" onClick={() => navigateTo('login')}>Sign In</span>

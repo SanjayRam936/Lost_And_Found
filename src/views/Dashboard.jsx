@@ -1,61 +1,83 @@
 import React from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, ArrowRight, FileText, Sparkles } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { getStatusBadge } from '../utils/helpers';
 
 export const Dashboard = () => {
-  const { reports, navigateTo } = useAppContext();
+  const { reports, navigateTo, user } = useAppContext();
+  const firstName = user?.full_name?.trim()?.split(' ')[0] || 'there';
+  const matchCount = reports.filter(r => r.status === 'matched').length;
 
   return (
     <div className="dashboard-wrapper">
        <div className="dashboard-container">
          <div className="dashboard-header">
-           <h1>Overview</h1>
-           <p>Welcome back, user.</p>
+           <span className="dash-overline">Dashboard</span>
+           <h1>Welcome back, {firstName} 👋</h1>
+           <p>Here's an overview of your reported items.</p>
          </div>
+
          <div className="dash-actions">
-           <div className="dash-action-card" onClick={() => navigateTo('report', null, { type: 'lost' })}>
-             <div className="dash-action-icon icon-lost"><Search size={24} /></div>
-             <div className="dash-action-text">
-               <h3>Report Lost Item</h3>
-               <p>Let our AI find your item.</p>
-             </div>
-           </div>
-           <div className="dash-action-card" onClick={() => navigateTo('report', null, { type: 'found' })}>
-             <div className="dash-action-icon icon-found"><Plus size={24} /></div>
-             <div className="dash-action-text">
-               <h3>Report Found Item</h3>
-               <p>Help someone get their item back.</p>
-             </div>
-           </div>
+           <button className="action-btn action-btn-lost" onClick={() => navigateTo('report', null, { type: 'lost' })}>
+             <span className="action-btn-icon"><Search size={22} /></span>
+             <span className="action-btn-text">
+               <span className="action-btn-title">Report Lost Item</span>
+               <span className="action-btn-sub">Let our AI find it</span>
+             </span>
+             <ArrowRight className="action-btn-arrow" size={18} />
+           </button>
+
+           <button className="action-btn action-btn-found" onClick={() => navigateTo('report', null, { type: 'found' })}>
+             <span className="action-btn-icon"><Plus size={22} /></span>
+             <span className="action-btn-text">
+               <span className="action-btn-title">Report Found Item</span>
+               <span className="action-btn-sub">Help return it</span>
+             </span>
+             <ArrowRight className="action-btn-arrow" size={18} />
+           </button>
          </div>
-         
+
          <div className="dash-stats-grid">
-            <div className="dash-stat-card">
-              <div className="dash-stat-label">Your Reports</div>
-              <div className="dash-stat-value val-black">{reports.length}</div>
+            <div className="stat-card" onClick={() => navigateTo('my-reports')}>
+              <div className="stat-card-top">
+                <span className="stat-card-icon stat-icon-neutral"><FileText size={18} /></span>
+                <span className="stat-card-label">Your Reports</span>
+              </div>
+              <div className="stat-card-value">{reports.length}</div>
             </div>
-            <div className="dash-stat-card">
-              <div className="dash-stat-label">AI Matches</div>
-              <div className="dash-stat-value val-purple">1</div>
+            <div className="stat-card" onClick={() => navigateTo('my-reports')}>
+              <div className="stat-card-top">
+                <span className="stat-card-icon stat-icon-purple"><Sparkles size={18} /></span>
+                <span className="stat-card-label">AI Matches</span>
+              </div>
+              <div className="stat-card-value val-purple">{matchCount}</div>
             </div>
          </div>
-         
+
          <div className="dash-recent">
-            <h3>Recent Activity</h3>
-            {reports.slice(0, 2).map(r => (
+            <div className="dash-recent-head">
+              <h3>Recent Activity</h3>
+              {reports.length > 0 && (
+                <button className="dash-recent-link" onClick={() => navigateTo('my-reports')}>View all</button>
+              )}
+            </div>
+            {reports.length === 0 && (
+              <div className="dash-empty">No activity yet — report a lost or found item to get started.</div>
+            )}
+            {reports.slice(0, 3).map(r => (
                <div className="dash-activity-item" key={r.id} onClick={() => navigateTo('my-reports')}>
                  <div className="dash-activity-left">
-                   <div className="dash-activity-icon"><img src={r.image} alt={r.title} /></div>
+                   <div className="dash-activity-icon">
+                     {r.image ? <img src={r.image} alt={r.title} /> : <FileText size={16} />}
+                   </div>
                    <div>
                      <div className="dash-activity-title">{r.title}</div>
-                     <div className="dash-activity-meta">{r.date}</div>
+                     <div className="dash-activity-meta">{r.date || `${r.type} report`}</div>
                    </div>
                  </div>
                  {getStatusBadge(r.status)}
                </div>
             ))}
-            <button className="dash-view-all" onClick={() => navigateTo('my-reports')}>View All Activity</button>
          </div>
        </div>
     </div>

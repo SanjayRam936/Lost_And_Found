@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, List, User, Plus, MessageSquare } from 'lucide-react';
+import { Home, List, Plus } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 export const BottomNav = () => {

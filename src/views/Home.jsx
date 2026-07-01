@@ -13,8 +13,8 @@ export const Home = () => {
          <h1 className="hero-title">Find what's lost, <br/><span className="text-green">return what's found.</span></h1>
          <p className="hero-desc">The smartest campus lost and found platform. We use AI to match items instantly.</p>
          <div className="hero-buttons">
-           <button className="btn-primary" onClick={() => navigateTo('register', null, { regType: 'lost' })}><Search size={18}/> I Lost Something</button>
-           <button className="btn-secondary" onClick={() => navigateTo('register', null, { regType: 'found' })}><PlusCircle size={18}/> I Found Something</button>
+           <button className="btn-primary" onClick={() => navigateTo('login', null, { regType: 'lost' })}><Search size={18}/> I Lost Something</button>
+           <button className="btn-secondary" onClick={() => navigateTo('login', null, { regType: 'found' })}><PlusCircle size={18}/> I Found Something</button>
          </div>
       </div>
 

@@ -1,10 +1,10 @@
 import React from 'react';
-import { Bell, User, LogOut, MessageSquare } from 'lucide-react';
+import { Bell, User, LogOut } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { ShieldLogo } from './ShieldLogo';
 
 export const Navbar = () => {
-  const { isLoggedIn, navigateTo, handleLogout, unreadMessagesCount, unreadNotificationsCount } = useAppContext();
+  const { isLoggedIn, navigateTo, handleLogout, unreadNotificationsCount } = useAppContext();
 
   return (
     <nav className="navbar">
@@ -17,10 +17,6 @@ export const Navbar = () => {
            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigateTo('notifications')}>
              <Bell size={20} style={{ color: 'var(--text-gray)' }} />
              {unreadNotificationsCount > 0 && <span className="icon-badge">{unreadNotificationsCount}</span>}
-           </div>
-           <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigateTo('messages')}>
-             <MessageSquare size={20} style={{ color: 'var(--text-gray)' }} />
-             {unreadMessagesCount > 0 && <span className="icon-badge">{unreadMessagesCount}</span>}
            </div>
            <User size={20} style={{ color: 'var(--text-gray)', cursor: 'pointer' }} onClick={() => navigateTo('account-settings')} />
            <LogOut size={20} style={{ color: 'var(--text-gray)', cursor: 'pointer' }} onClick={handleLogout} />

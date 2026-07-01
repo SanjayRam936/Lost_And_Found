@@ -1,10 +1,13 @@
 import React from 'react';
-import { ImagePlus } from 'lucide-react';
+import { ImagePlus, MapPin } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { CustomSelect } from '../components/CustomSelect';
+import { MapPicker } from '../components/MapPicker';
+import { CATEGORY_OPTIONS } from '../utils/helpers';
 
 export const ReportItem = () => {
-  const { reportForm, setReportForm, handleReportSubmit, navigateTo } = useAppContext();
+  const { reportForm, setReportForm, handleReportSubmit, reportError, isLoading, navigateTo } = useAppContext();
+  const fileRef = React.useRef(null);
 
   return (
     <div className="dashboard-wrapper">
@@ -34,20 +37,28 @@ export const ReportItem = () => {
             </div>
              <div className="form-group">
                <label className="form-label">Category</label>
-               <CustomSelect 
-                 value={reportForm.category} 
+               <CustomSelect
+                 value={reportForm.category}
                  onChange={(val) => setReportForm({...reportForm, category: val})}
-                 options={[
-                   { value: 'electronics', label: 'Electronics' },
-                   { value: 'personal', label: 'Personal Items' },
-                   { value: 'pets', label: 'Pets' }
-                 ]}
+                 options={CATEGORY_OPTIONS}
                  placeholder="Select Category..."
                />
             </div>
             <div className="form-group">
-               <label className="form-label">Location</label>
-               <input type="text" className="form-input" placeholder="Where was it?" required value={reportForm.location} onChange={e => setReportForm({...reportForm, location: e.target.value})} />
+               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                 <MapPin size={16} color="var(--primary)" /> Location
+               </label>
+               <MapPicker
+                 value={{ place: reportForm.location, lat: reportForm.latitude, lng: reportForm.longitude }}
+                 placeholder="Search where it was lost / found…"
+                 fallbackPlaceholder="Where was it?"
+                 onChange={(v) => setReportForm({
+                   ...reportForm,
+                   location: v.place || (v.lat != null ? `${v.lat.toFixed(5)}, ${v.lng.toFixed(5)}` : ''),
+                   latitude: v.lat,
+                   longitude: v.lng,
+                 })}
+               />
             </div>
             <div className="date-time-row">
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
@@ -72,11 +83,27 @@ export const ReportItem = () => {
               </div>
             </div>
             <div className="form-group">
-               <label className="form-label">Photo {reportForm.type === 'lost' ? '(Optional)' : '(Required)'}</label>
-               <div className="upload-area">
-                 <ImagePlus size={32} color="var(--primary)" />
-                 <div className="upload-title">Click to upload</div>
-                 <div className="upload-subtitle">JPG, PNG up to 5MB</div>
+               <label className="form-label">Photo {reportForm.type === 'lost' ? '(Optional)' : '(Recommended)'}</label>
+               <input
+                 type="file"
+                 accept="image/*"
+                 ref={fileRef}
+                 style={{ display: 'none' }}
+                 onChange={e => setReportForm({ ...reportForm, image: e.target.files[0] || null })}
+               />
+               <div className="upload-area" style={{ cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
+                 {reportForm.image instanceof File ? (
+                   <>
+                     <img src={URL.createObjectURL(reportForm.image)} alt="preview" style={{ maxHeight: 120, borderRadius: 8, marginBottom: 8 }} />
+                     <div className="upload-subtitle">{reportForm.image.name} — click to change</div>
+                   </>
+                 ) : (
+                   <>
+                     <ImagePlus size={32} color="var(--primary)" />
+                     <div className="upload-title">Click to upload</div>
+                     <div className="upload-subtitle">JPG, PNG up to 5MB</div>
+                   </>
+                 )}
                </div>
             </div>
             <div className="form-group">
@@ -134,6 +161,22 @@ export const ReportItem = () => {
                   </div>
                 </div>
 
+                {/* Drop-off location for Police / Institution handovers */}
+                {(reportForm.handoverMethod === 'police' || reportForm.handoverMethod === 'admin') && (
+                  <div className="form-group">
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <MapPin size={16} color="var(--primary)" /> Handover Location
+                    </label>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)', marginBottom: '0.75rem' }}>
+                      Mark where you dropped off the item so the owner knows exactly where to collect it.
+                    </p>
+                    <MapPicker
+                      value={{ place: reportForm.handoverPlace, lat: reportForm.handoverLat, lng: reportForm.handoverLng }}
+                      onChange={(v) => setReportForm({ ...reportForm, handoverPlace: v.place, handoverLat: v.lat, handoverLng: v.lng })}
+                    />
+                  </div>
+                )}
+
                 <div className="form-group" style={{ backgroundColor: 'var(--bg-alt)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
                    <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Reward Preference</label>
                    <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)', marginBottom: '1rem' }}>Would you like to be offered a reward if the owner chooses to give one?</p>
@@ -150,7 +193,8 @@ export const ReportItem = () => {
                 </div>
               </>
             )}
-            <button type="submit" className="btn-submit">Submit Report</button>
+            {reportError && <div className="error-text" style={{ marginBottom: '1rem' }}>{reportError}</div>}
+            <button type="submit" className="btn-submit" disabled={isLoading}>{isLoading ? 'Submitting…' : 'Submit Report'}</button>
             <button type="button" className="btn-cancel" onClick={() => navigateTo('dashboard')}>Cancel</button>
          </form>
        </div>

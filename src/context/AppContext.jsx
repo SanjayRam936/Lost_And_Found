@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useRef } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
+import * as authApi from '../api/auth';
+import * as itemsApi from '../api/items';
+import * as notificationsApi from '../api/notifications';
+import * as matchesApi from '../api/matches';
+import * as claimsApi from '../api/claims';
+import { apiError, tokenStore } from '../api/client';
 
 const AppContext = createContext();
 
@@ -12,11 +18,17 @@ export const AppProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Authenticated user + auth feedback
+  const [user, setUser] = useState(null);
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [bootstrapping, setBootstrapping] = useState(true);
+
   // Login Form State
-  const [email, setEmail] = useState('invalid-email-format');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const hasEmailError = true;
+  const hasEmailError = false;
 
   // Admin Login State
   const [adminEmail, setAdminEmail] = useState('admin@lostfound.ai');
@@ -39,25 +51,32 @@ export const AppProvider = ({ children }) => {
   const [isBankLinked, setIsBankLinked] = useState(false); 
   const [paymentMethod, setPaymentMethod] = useState('upi');
 
-  // Notifications State
-  const [notificationsRead, setNotificationsRead] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: 'match', title: 'AI Match Found', time: '10 mins ago', read: false },
-    { id: 2, type: 'message', title: 'New Message', time: '1 hour ago', read: false }
-  ]);
-  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+  // Notifications State (loaded from the backend)
+  const [notifications, setNotifications] = useState([]);
+  const unreadNotificationsCount = notifications.filter(n => !n.is_read).length;
 
-  // Chat/Messages State
-  const [conversations, setConversations] = useState([
-    { id: 1, matchId: 1, name: 'Sarah M.', item: 'Black Leather Wallet', lastMessage: 'Thank you so much!', time: '2:50 PM', unread: 1, isOnline: true }
-  ]);
-  const unreadMessagesCount = conversations.reduce((acc, conv) => acc + conv.unread, 0);
+  const fetchNotifications = async () => {
+    try {
+      setNotifications(await notificationsApi.listNotifications());
+    } catch {
+      // ignore — keep whatever we had
+    }
+  };
 
-  const [chatMessages, setChatMessages] = useState([
-    { id: 1, type: 'received', text: "Hi! I found your black Bellroy wallet near the South Entrance. I've handed it over to the Campus Security Desk.", time: "2:45 PM" },
-    { id: 2, type: 'sent', text: "Thank you so much! I'll head over to the security desk now to pick it up. Did you leave any specific reference number?", time: "2:48 PM" },
-    { id: 3, type: 'received', text: "No reference number, just show them this verified match screen. They know to expect you!", time: "2:50 PM", read: true }
-  ]);
+  const markAllNotificationsRead = async () => {
+    try {
+      await notificationsApi.markAllRead();
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch {
+      // ignore
+    }
+  };
+
+  // Chat/Messages State (real data is fetched inside the Messages/ChatScreen views)
+  const [conversations, setConversations] = useState([]);
+  const unreadMessagesCount = 0;
+
+  const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -95,6 +114,12 @@ export const AppProvider = ({ children }) => {
   // Claim & Handover Flow States
   const [claimRole, setClaimRole] = useState('owner'); // 'owner' or 'finder' for demo purposes
   const [generatedOtp, setGeneratedOtp] = useState('482913');
+
+  // Real match/claim flow state
+  const [currentMatch, setCurrentMatch] = useState(null);
+  const [currentClaim, setCurrentClaim] = useState(null);
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [claimError, setClaimError] = useState('');
   const [handoverMethod, setHandoverMethod] = useState(''); // 'police' or 'custom'
   const [policeStationDetails, setPoliceStationDetails] = useState({
     name: 'Central Police Station',
@@ -116,23 +141,28 @@ export const AppProvider = ({ children }) => {
   };
   const passStrength = getStrength(regPassword);
 
-  // --- CRUD STATE MANAGEMENT ---
-  const [reports, setReports] = useState([
-    {
-      id: 1, type: 'lost', status: 'matched', category: 'personal',
-      title: 'Black Leather Wallet', date: '2023-10-24', location: 'Central Park South Entrance',
-      image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=500&q=80&fit=crop'
-    },
-    {
-      id: 2, type: 'lost', status: 'active', category: 'pets',
-      title: "Golden Retriever 'Max'", date: '2023-10-22', location: 'City Park',
-      image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=150&q=80&fit=crop'
-    }
-  ]);
+  // --- REPORTS (lost + found items) — loaded from the backend ---
+  const [reports, setReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
 
-  const [reportForm, setReportForm] = useState({
-    id: null, type: 'lost', category: '', title: '', color: '', description: '', date: '', time: '', location: '', image: null, handoverMethod: 'direct', wantsReward: false
-  });
+  const emptyReportForm = {
+    pk: null, type: 'lost', category: '', title: '', color: '', description: '', date: '', time: '', location: '', latitude: null, longitude: null, image: null, handoverMethod: 'direct', wantsReward: false,
+    handoverPlace: '', handoverLat: null, handoverLng: null
+  };
+  const [reportForm, setReportForm] = useState(emptyReportForm);
+
+  const fetchReports = async () => {
+    setReportsLoading(true);
+    try {
+      const data = await itemsApi.listMyReports();
+      setReports(data);
+      return data;
+    } catch {
+      return [];
+    } finally {
+      setReportsLoading(false);
+    }
+  };
 
   // Filtering Logic
   const filteredReports = reports.filter(r => {
@@ -174,7 +204,7 @@ export const AppProvider = ({ children }) => {
       if (params?.regType) setRegType(params.regType);
       
       if (view === 'report' && !params?.editMode) {
-        setReportForm({ id: null, type: 'lost', category: '', title: '', color: '', description: '', date: '', time: '', location: '', image: null, handoverMethod: 'direct', wantsReward: false });
+        setReportForm({ ...emptyReportForm, type: params?.type || 'lost' });
       }
 
       if (view === 'match-detail') {
@@ -189,69 +219,303 @@ export const AppProvider = ({ children }) => {
     }, 400); // reduced from 600 for smoother navigation
   };
 
-  const handleLoginSubmit = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    setTimeout(() => {
-      setIsLoggedIn(true);
-      setCurrentView('dashboard'); 
+  // Apply an authenticated user to app state and route to the right home view.
+  const applyAuthenticatedUser = (u, { redirect = true } = {}) => {
+    setUser(u);
+    setIsLoggedIn(true);
+    const staff = Boolean(u?.is_staff);
+    setIsAdmin(staff);
+    fetchReports();
+    fetchNotifications();
+    if (redirect) {
+      setCurrentView(staff ? 'admin-dashboard' : 'dashboard');
       window.scrollTo(0, 0);
-      setIsLoading(false);
-    }, 800);
+    }
   };
 
-  const handleAdminLoginSubmit = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    setTimeout(() => {
-      setIsLoggedIn(true);
-      setIsAdmin(true);
-      setCurrentView('admin-dashboard');
-      window.scrollTo(0, 0);
-      setIsLoading(false);
-    }, 800);
+  // Clear all auth state locally (used after logout or a failed token refresh).
+  const clearSession = () => {
+    setUser(null);
+    setIsLoggedIn(false);
+    setIsAdmin(false);
+    setReports([]);
+    setNotifications([]);
   };
 
-  const handleLogout = () => {
+  const handleLoginSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
     setIsLoading(true);
-    
-    setTimeout(() => {
-      setIsLoggedIn(false);
-      setIsAdmin(false);
-      setCurrentView('home'); 
+    try {
+      const u = await authApi.login(email, password);
+      applyAuthenticatedUser(u);
+      setPassword('');
+    } catch (err) {
+      setAuthError(apiError(err, 'Invalid email or password.'));
+    } finally {
+      setAuthLoading(false);
       setIsLoading(false);
-    }, 600);
+    }
   };
 
-  // --- CRUD HANDLERS ---
-  const handleReportSubmit = (e) => {
-    e.preventDefault();
+  // Registration: backend returns tokens, so the user is logged straight in.
+  const handleRegisterSubmit = async ({ fullName, email: regE, phone, password: regP, confirmPassword }) => {
+    setAuthError('');
+    setAuthLoading(true);
     setIsLoading(true);
-    
-    setTimeout(() => {
-      if (reportForm.id) {
-        setReports(reports.map(r => r.id === reportForm.id ? { ...r, ...reportForm } : r));
-      } else {
-        const newReport = { ...reportForm, id: Date.now(), status: 'active' };
-        setReports([newReport, ...reports]);
+    try {
+      const u = await authApi.register({
+        full_name: fullName,
+        email: regE,
+        phone_number: phone,
+        password: regP,
+        password2: confirmPassword,
+      });
+      applyAuthenticatedUser(u);
+      return { ok: true };
+    } catch (err) {
+      const msg = apiError(err, 'Could not create account.');
+      setAuthError(msg);
+      return { ok: false, error: msg };
+    } finally {
+      setAuthLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  // Admin login uses the same endpoint; access is granted only to staff users.
+  const handleAdminLoginSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    setIsLoading(true);
+    try {
+      const u = await authApi.login(adminEmail, adminPassword);
+      if (!u?.is_staff) {
+        setAuthError('This account does not have admin access.');
+        await authApi.logout();
+        clearSession();
+        return;
       }
+      setAdminPassword('');
+      applyAuthenticatedUser(u);
+    } catch (err) {
+      setAuthError(apiError(err, 'Invalid admin credentials.'));
+    } finally {
+      setAuthLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setIsLoading(true);
+    try {
+      await authApi.logout();
+    } finally {
+      clearSession();
+      setCurrentView('home');
+      window.scrollTo(0, 0);
+      setIsLoading(false);
+    }
+  };
+
+  // Restore the session on first load (if a refresh token is stored) and
+  // react to forced logouts triggered by a failed token refresh.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (authApi.hasSession()) {
+        try {
+          const me = await authApi.getMe();
+          if (active) applyAuthenticatedUser(me, { redirect: false });
+        } catch {
+          tokenStore.clear();
+        }
+      }
+      if (active) setBootstrapping(false);
+    })();
+
+    const onForcedLogout = () => {
+      clearSession();
+      setCurrentView('login');
+    };
+    window.addEventListener('lf:logout', onForcedLogout);
+    return () => {
+      active = false;
+      window.removeEventListener('lf:logout', onForcedLogout);
+    };
+  }, []);
+
+  // --- CRUD HANDLERS (real API) ---
+  const [reportError, setReportError] = useState('');
+
+  const handleReportSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setReportError('');
+    setIsLoading(true);
+    try {
+      if (reportForm.pk) {
+        await itemsApi.updateReport(reportForm);
+      } else {
+        await itemsApi.createReport(reportForm);
+      }
+      await fetchReports();
+      setReportForm(emptyReportForm);
       setCurrentView('my-reports');
       window.scrollTo(0, 0);
+    } catch (err) {
+      setReportError(apiError(err, 'Could not save the report.'));
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   const handleEditReport = (report) => {
-    setReportForm(report);
+    setReportForm({ ...emptyReportForm, ...report, image: null });
     setCurrentView('report');
     window.scrollTo(0, 0);
   };
 
-  const handleDeleteReport = (id) => {
-    if(window.confirm('Are you sure you want to delete this report?')) {
-      setReports(reports.filter(r => r.id !== id));
+  const handleDeleteReport = async (report) => {
+    if (!window.confirm('Are you sure you want to delete this report?')) return;
+    try {
+      await itemsApi.deleteReport(report);
+      setReports((prev) => prev.filter((r) => r.id !== report.id));
+    } catch (err) {
+      alert(apiError(err, 'Could not delete the report.'));
+    }
+  };
+
+  // --- MATCH / CLAIM HANDLERS (real API) ---
+  // Open the match-detail view for a given lost item (loads its top match).
+  const loadMatchForLost = async (lostPk) => {
+    setMatchLoading(true);
+    setClaimError('');
+    setCurrentMatch(null);
+    try {
+      const matches = await matchesApi.matchesForLost(lostPk);
+      const top = matches[0] || null;
+      setCurrentMatch(top);
+      return top;
+    } catch (err) {
+      setClaimError(apiError(err, 'Could not load match.'));
+      return null;
+    } finally {
+      setMatchLoading(false);
+    }
+  };
+
+  // Owner initiates the claim -> generates the OTP (DIRECT) -> OTP screen.
+  const handleInitiateClaim = async () => {
+    if (!currentMatch) return;
+    setClaimError('');
+    setIsLoading(true);
+    try {
+      const claim = await claimsApi.initiateClaim(currentMatch.id);
+      setCurrentClaim(claim);
+      // POLICE / INSTITUTION: no OTP — show the collection-success screen.
+      if (claim.handover_type !== 'DIRECT') {
+        setCurrentView('claim-success');
+      } else {
+        setCurrentView('claim-otp-owner');
+      }
+      window.scrollTo(0, 0);
+    } catch (err) {
+      setClaimError(apiError(err, 'Could not start the claim.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegenerateOtp = async () => {
+    if (!currentClaim) return;
+    try {
+      const claim = await claimsApi.regenerateOtp(currentClaim.id);
+      setCurrentClaim(claim);
+    } catch (err) {
+      setClaimError(apiError(err, 'Could not regenerate OTP.'));
+    }
+  };
+
+  // Finder submits the OTP. Returns { ok, wantsReward } so the view can route.
+  const handleVerifyOtp = async (otp) => {
+    if (!currentClaim) return { ok: false };
+    try {
+      const res = await claimsApi.verifyOtp(currentClaim.id, otp);
+      setCurrentClaim((prev) => (prev ? { ...prev, status: 'RESOLVED', otp_verified: true } : prev));
+      fetchReports();
+      fetchNotifications();
+      return { ok: true, wantsReward: !!res.wants_reward };
+    } catch (err) {
+      return { ok: false, error: apiError(err, 'Incorrect OTP.') };
+    }
+  };
+
+  const handleDismissMatch = async () => {
+    if (!currentMatch) return;
+    if (!window.confirm('This match will be removed. Proceed?')) return;
+    try {
+      await matchesApi.dismissMatch(currentMatch.id);
+      await fetchReports();
+      navigateTo('my-reports');
+    } catch (err) {
+      alert(apiError(err, 'Could not dismiss the match.'));
+    }
+  };
+
+  // Finder opens the OTP submit page for one of their found items, scoped to
+  // the claim the owner initiated on it. (The finder is a claim participant but
+  // has no match visibility — they only need the match id for the chat.)
+  const openFinderClaim = async (report) => {
+    if (!report?.claim?.id) return;
+    setClaimError('');
+    setIsLoading(true);
+    try {
+      const claim = await claimsApi.getClaim(report.claim.id);
+      setCurrentClaim(claim);
+      setCurrentMatch({ id: report.claim.match_id });
+      setCurrentView('claim-otp-finder');
+      window.scrollTo(0, 0);
+    } catch (err) {
+      alert(apiError(err, 'Could not open the handover.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Finder opens their reward status page from the product list.
+  const openFinderReward = async (report) => {
+    if (!report?.claim?.id) return;
+    setIsLoading(true);
+    try {
+      const claim = await claimsApi.getClaim(report.claim.id);
+      setCurrentClaim(claim);
+      setCurrentMatch({ id: report.claim.match_id });
+      setCurrentView('finder-reward');
+      window.scrollTo(0, 0);
+    } catch (err) {
+      alert(apiError(err, 'Could not open the reward page.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Owner opens the reward page for a resolved lost item from the product list.
+  const openOwnerReward = async (report) => {
+    if (!report?.claim?.id) return;
+    setClaimError('');
+    setIsLoading(true);
+    try {
+      const claim = await claimsApi.getClaim(report.claim.id);
+      setCurrentClaim(claim);
+      setCurrentMatch({ id: report.claim.match_id });
+      setCurrentView('rewards');
+      window.scrollTo(0, 0);
+    } catch (err) {
+      alert(apiError(err, 'Could not open the reward page.'));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -267,8 +531,9 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={{
       currentView, setCurrentView, currentParams, setCurrentParams, navigateTo,
       isLoggedIn, setIsLoggedIn, handleLoginSubmit, handleLogout,
-      isAdmin, setIsAdmin, handleAdminLoginSubmit,
+      isAdmin, setIsAdmin, handleAdminLoginSubmit, handleRegisterSubmit,
       isLoading, setIsLoading,
+      user, setUser, authError, setAuthError, authLoading, bootstrapping,
       
       email, setEmail, hasEmailError,
       password, setPassword, showPassword, setShowPassword,
@@ -281,7 +546,7 @@ export const AppProvider = ({ children }) => {
       
       activeFilter, setActiveFilter,
       isBankLinked, setIsBankLinked, paymentMethod, setPaymentMethod,
-      notificationsRead, setNotificationsRead, notifications, unreadNotificationsCount,
+      notifications, unreadNotificationsCount, fetchNotifications, markAllNotificationsRead,
       
       conversations, unreadMessagesCount,
       chatMessages, setChatMessages, chatInput, setChatInput, handleSendMessage, handleSendAttachment, handleDeleteMessage,
@@ -290,10 +555,13 @@ export const AppProvider = ({ children }) => {
       isAuthorized, setIsAuthorized, claimStep, setClaimStep, showSecuritySection, setShowSecuritySection,
       
       reports, setReports, reportForm, setReportForm, filteredReports,
+      fetchReports, reportsLoading, reportError,
       handleReportSubmit, handleEditReport, handleDeleteReport, handleRejectMatch,
       escrowTimeline, setEscrowTimeline, confirmItemReceived, confirmRewardPayment,
       claimRole, setClaimRole, generatedOtp, setGeneratedOtp, handoverMethod, setHandoverMethod,
-      policeStationDetails, setPoliceStationDetails, customLocation, setCustomLocation
+      policeStationDetails, setPoliceStationDetails, customLocation, setCustomLocation,
+      currentMatch, currentClaim, matchLoading, claimError,
+      loadMatchForLost, handleInitiateClaim, handleRegenerateOtp, handleVerifyOtp, handleDismissMatch, openFinderClaim, openOwnerReward, openFinderReward
     }}>
       {children}
     </AppContext.Provider>
