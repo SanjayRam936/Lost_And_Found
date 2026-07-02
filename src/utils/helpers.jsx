@@ -27,6 +27,14 @@ export const CATEGORIES = [
 
 export const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({ value: c, label: c }));
 
+// Standard colors (a fixed list keeps values consistent so the matching
+// engine's exact-color check works across lost/found reports).
+export const COLORS = [
+  'Black', 'White', 'Silver', 'Grey', 'Blue', 'Red', 'Green', 'Yellow',
+  'Orange', 'Brown', 'Pink', 'Purple', 'Gold', 'Multicolor', 'Other',
+];
+export const COLOR_OPTIONS = COLORS.map((c) => ({ value: c, label: c }));
+
 const CATEGORY_ICONS = {
   'Phone & Tablets': Smartphone,
   'Wallet & Purse': Wallet,

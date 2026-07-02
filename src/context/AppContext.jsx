@@ -146,7 +146,7 @@ export const AppProvider = ({ children }) => {
   const [reportsLoading, setReportsLoading] = useState(false);
 
   const emptyReportForm = {
-    pk: null, type: 'lost', category: '', title: '', color: '', description: '', date: '', time: '', location: '', latitude: null, longitude: null, image: null, handoverMethod: 'direct', wantsReward: false,
+    pk: null, type: 'lost', category: '', title: '', brand: '', color: '', description: '', date: '', time: '', location: '', latitude: null, longitude: null, image: null, handoverMethod: 'direct', wantsReward: false,
     handoverPlace: '', handoverLat: null, handoverLng: null
   };
   const [reportForm, setReportForm] = useState(emptyReportForm);

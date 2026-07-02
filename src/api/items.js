@@ -16,6 +16,7 @@ function normalizeLost(it) {
     claim,                                  // { id, match_id, status, wants_reward, reward_status } | null
     category: it.category,
     title: it.title,
+    brand: it.brand || '',
     color: it.color || '',
     description: it.description || '',
     location: it.location || '',
@@ -49,6 +50,7 @@ function normalizeFound(it) {
     matchId: claim?.match_id || null,
     category: it.category,
     title: it.title,
+    brand: it.brand || '',
     color: it.color || '',
     description: it.description || '',
     location: it.location || '',
@@ -72,6 +74,7 @@ function buildItemBody(form, { found }) {
   const base = {
     title: form.title,
     category: form.category || 'Unknown',
+    brand: form.brand || '',
     color: form.color || '',
     description: form.description || '',
     location: form.location,

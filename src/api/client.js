@@ -21,8 +21,15 @@ export const tokenStore = {
   },
 };
 
+// --- API base URL -----------------------------------------------------------
+// In local dev this is empty, so requests go to "/api/v1/..." and the Vite
+// proxy forwards them to Django. In production set VITE_API_URL to the deployed
+// backend origin (e.g. https://your-space.hf.space).
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+export const API_ROOT = `${API_BASE}/api/v1`;
+
 // --- Axios instance ---------------------------------------------------------
-const api = axios.create({ baseURL: '/api/v1' });
+const api = axios.create({ baseURL: API_ROOT });
 
 // Attach the access token to every request.
 api.interceptors.request.use((config) => {
@@ -56,7 +63,7 @@ api.interceptors.response.use(
     config._retry = true;
     try {
       refreshing =
-        refreshing || axios.post('/api/v1/token/refresh/', { refresh });
+        refreshing || axios.post(`${API_ROOT}/token/refresh/`, { refresh });
       const { data } = await refreshing;
       refreshing = null;
       tokenStore.set({ access: data.access, refresh: data.refresh });

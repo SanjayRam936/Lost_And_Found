@@ -3,7 +3,7 @@ import { ImagePlus, MapPin } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { CustomSelect } from '../components/CustomSelect';
 import { MapPicker } from '../components/MapPicker';
-import { CATEGORY_OPTIONS } from '../utils/helpers';
+import { CATEGORY_OPTIONS, COLOR_OPTIONS } from '../utils/helpers';
 
 export const ReportItem = () => {
   const { reportForm, setReportForm, handleReportSubmit, reportError, isLoading, navigateTo } = useAppContext();
@@ -43,6 +43,22 @@ export const ReportItem = () => {
                  options={CATEGORY_OPTIONS}
                  placeholder="Select Category..."
                />
+            </div>
+            <div className="date-time-row">
+              <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                 <label className="form-label">Brand <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span></label>
+                 <input type="text" className="form-input" placeholder="e.g. Casio, Apple"
+                   value={reportForm.brand || ''} onChange={e => setReportForm({...reportForm, brand: e.target.value})} />
+              </div>
+              <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                 <label className="form-label">Color <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span></label>
+                 <CustomSelect
+                   value={reportForm.color}
+                   onChange={(val) => setReportForm({...reportForm, color: val})}
+                   options={COLOR_OPTIONS}
+                   placeholder="Select color..."
+                 />
+              </div>
             </div>
             <div className="form-group">
                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
