@@ -1,0 +1,30 @@
+# ── Secrets: never commit real env files; keep the template ──
+.env
+.env.*
+!.env.example
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ── Django ──
+*.log
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+lost_items_images/
+
+# ── AI model weight caches ──
+.EasyOCR/
+*.pt
+*.pth
+*.onnx
+
+# ── Editors / OS ──
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

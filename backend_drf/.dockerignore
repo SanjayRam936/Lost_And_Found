@@ -1,0 +1,33 @@
+# Keep the Docker build context small and secrets out of the image.
+
+# Secrets — provided at runtime as Hugging Face Space secrets, never baked in
+.env
+.env.*
+!.env.example
+
+# Local dev database & uploads (do not ship these into the image)
+db.sqlite3
+db.sqlite3-journal
+media/
+lost_items_images/
+staticfiles/
+
+# Python caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+# Model weight caches (re-downloaded during build)
+.EasyOCR/
+*.pt
+*.pth
+*.onnx
+
+# VCS / editors / OS
+.git/
+.gitignore
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

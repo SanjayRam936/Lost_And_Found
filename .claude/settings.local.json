@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($py = \"c:\\\\projects\\\\fullstack_projects\\\\lost_fount_ai_project\\\\venv\\\\Scripts\\\\python.exe\"; $mng = \"c:\\\\projects\\\\fullstack_projects\\\\lost_fount_ai_project\\\\backend_drf\\\\manage.py\"; & $py $mng check 2>&1 | Select-Object -Last 3; $f = \"c:\\\\projects\\\\fullstack_projects\\\\lost_fount_ai_project\\\\frontend_rjs\"; Push-Location $f; npm run build 2>&1 | Select-Object -Last 6; Pop-Location)",
+      "PowerShell($py = \"c:\\\\projects\\\\fullstack_projects\\\\lost_fount_ai_project\\\\venv\\\\Scripts\\\\python.exe\"; $mng = \"c:\\\\projects\\\\fullstack_projects\\\\lost_fount_ai_project\\\\backend_drf\\\\manage.py\"; & $py $mng check 2>&1 | Select-Object -Last 3; $f = \"c:\\\\projects\\\\fullstack_projects\\\\lost_fount_ai_project\\\\frontend_rjs\"; Push-Location $f; npm run build 2>&1 | Select-Object -Last 5; Pop-Location)"
+    ]
+  }
+}
