@@ -1,9 +1,0 @@
-import React from 'react';
-
-export const ShieldLogo = ({ color = "#035C43", size = 22 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2L3 6v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V6l-9-4z" fill={color}/>
-    <path d="M12 6.5l-4.5 2v3.5c0 3.08 2.13 5.96 5 6.66 2.87-.7 5-3.58 5-6.66v-3.5L12 6.5z" fill="#ffffff"/>
-    <path d="M11 10h2v2h2v2h-2v2h-2v-2H9v-2h2v-2z" fill={color}/>
-  </svg>
-);
