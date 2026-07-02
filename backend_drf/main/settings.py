@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     'api',
     'user_accounts',
     'rest_framework',
+    'drf_spectacular',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'lost_items',
@@ -246,6 +247,18 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    # OpenAPI schema generation for Swagger UI / ReDoc.
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Lost & Found AI API',
+    'DESCRIPTION': 'Auth (JWT), lost/found reports, AI matching, claims, chat, '
+                   'rewards, notifications, and admin endpoints.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # Docs/schema endpoints are public even though the API defaults to auth.
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
 }
 
 SIMPLE_JWT = {

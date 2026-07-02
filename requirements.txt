@@ -6,6 +6,7 @@ django-cors-headers
 python-dotenv
 psycopg[binary]
 razorpay
+drf-spectacular   # OpenAPI 3 schema + Swagger UI / ReDoc
 
 # ── Production serving ───────────────────────────────────────
 gunicorn          # WSGI server for production (Hugging Face Spaces)
