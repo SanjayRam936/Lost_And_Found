@@ -13,21 +13,49 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables from backend_drf/.env (for local development).
+# In production (Hugging Face Spaces), set these as Space "secrets" instead.
+load_dotenv(BASE_DIR / '.env')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+
+def env_bool(name, default='False'):
+    return os.environ.get(name, default).strip().lower() in ('1', 'true', 'yes', 'on')
+
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-2#3-g0l-cup%#7zweh=7#77fp=(%j%37=0g8(xvn&f6dag*n)b'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-2#3-g0l-cup%#7zweh=7#77fp=(%j%37=0g8(xvn&f6dag*n)b',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool('DEBUG', 'True')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get(
+    'ALLOWED_HOSTS', 'localhost,127.0.0.1'
+).split(',') if h.strip()]
+
+# ── CORS (Cross-Origin Resource Sharing) ────────────────────────────────────
+# Locally the Vite dev proxy makes API calls same-origin, so CORS isn't hit.
+# In production the frontend (Vercel) and backend (Hugging Face Spaces) are on
+# different origins, so the deployed frontend URL must be allowed here.
+# Set the env var in production, e.g.:
+#   CORS_ALLOWED_ORIGINS=https://your-app.vercel.app
+CORS_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:5173,http://127.0.0.1:5173'
+).split(',') if o.strip()]
+CORS_ALLOW_CREDENTIALS = True
+
+# Needed for Django admin / CSRF-protected POSTs from the deployed frontend host.
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get(
+    'CSRF_TRUSTED_ORIGINS', ''
+).split(',') if o.strip()]
 
 
 # Application definition
@@ -39,6 +67,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'api',
     'user_accounts',
     'rest_framework',
@@ -56,6 +85,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',   # must be above CommonMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -95,6 +125,9 @@ DATABASES = {
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
         'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        # Managed Postgres (e.g. Supabase) requires SSL. Set POSTGRES_SSLMODE=require.
+        'OPTIONS': ({'sslmode': os.environ['POSTGRES_SSLMODE']}
+                    if os.environ.get('POSTGRES_SSLMODE') else {}),
     }
 }
 
