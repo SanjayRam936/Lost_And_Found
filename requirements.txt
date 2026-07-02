@@ -1,0 +1,19 @@
+# ── Web / API ───────────────────────────────────────────────
+Django>=5.0
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+python-dotenv
+psycopg[binary]
+razorpay
+
+# ── AI matching engine ──────────────────────────────────────
+# Models download automatically from the Hugging Face hub on first run and
+# cache locally. torch auto-detects CUDA (local GPU) and falls back to CPU
+# (e.g. Hugging Face Spaces free tier).
+sentence-transformers
+easyocr
+torch
+torchvision
+transformers
+Pillow
