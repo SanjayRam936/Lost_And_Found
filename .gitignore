@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Secrets: ignore the dev env (has the Google key) but keep the non-secret
+# production build config (VITE_API_URL is a public URL) and the template.
+.env
+.env.local
+!.env.production
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

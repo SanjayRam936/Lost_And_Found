@@ -22,14 +22,51 @@ export const tokenStore = {
 };
 
 // --- API base URL -----------------------------------------------------------
-// In local dev this is empty, so requests go to "/api/v1/..." and the Vite
-// proxy forwards them to Django. In production set VITE_API_URL to the deployed
-// backend origin (e.g. https://your-space.hf.space).
-const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-export const API_ROOT = `${API_BASE}/api/v1`;
+// PRIMARY: where API calls go by default.
+//   - Local dev: VITE_API_URL is empty, so calls hit "/api/v1/..." and the Vite
+//     proxy forwards them to the local Django on :8000.
+//   - Production build (Vercel): VITE_API_URL is the HF Space, used directly.
+// FALLBACK: the deployed HF Space backend. In local dev, if the local backend
+// isn't running, initApiBase() reroutes every call to this automatically.
+const stripSlash = (s) => (s || '').replace(/\/$/, '');
+const PRIMARY = stripSlash(import.meta.env.VITE_API_URL);
+const FALLBACK = stripSlash(import.meta.env.VITE_FALLBACK_API_URL);
+
+const rootFor = (origin) => `${origin}/api/v1`;
 
 // --- Axios instance ---------------------------------------------------------
-const api = axios.create({ baseURL: API_ROOT });
+const api = axios.create({ baseURL: rootFor(PRIMARY) });
+
+// Probe the local backend once at startup; if it's down (and a remote fallback
+// is configured), route all calls to the HF Space instead. Only matters in
+// local dev — in production PRIMARY already points at the deployed backend.
+let apiBaseReady = null;
+export function initApiBase() {
+  if (!apiBaseReady) {
+    apiBaseReady = (async () => {
+      if (PRIMARY || !FALLBACK) return;          // prod, or nothing to fall back to
+      const localUp = await probe(rootFor(''));
+      if (!localUp) {
+        api.defaults.baseURL = rootFor(FALLBACK);
+        // eslint-disable-next-line no-console
+        console.info('[api] Local backend not reachable — using HF Space:', FALLBACK);
+      }
+    })();
+  }
+  return apiBaseReady;
+}
+
+async function probe(root) {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(`${root}/health/`, { signal: ctrl.signal, credentials: 'omit' });
+    clearTimeout(timer);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 
 // Attach the access token to every request.
 api.interceptors.request.use((config) => {
@@ -63,7 +100,7 @@ api.interceptors.response.use(
     config._retry = true;
     try {
       refreshing =
-        refreshing || axios.post(`${API_ROOT}/token/refresh/`, { refresh });
+        refreshing || axios.post(`${api.defaults.baseURL}/token/refresh/`, { refresh });
       const { data } = await refreshing;
       refreshing = null;
       tokenStore.set({ access: data.access, refresh: data.refresh });

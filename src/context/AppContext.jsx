@@ -4,7 +4,7 @@ import * as itemsApi from '../api/items';
 import * as notificationsApi from '../api/notifications';
 import * as matchesApi from '../api/matches';
 import * as claimsApi from '../api/claims';
-import { apiError, tokenStore } from '../api/client';
+import { apiError, tokenStore, initApiBase } from '../api/client';
 
 const AppContext = createContext();
 
@@ -246,7 +246,9 @@ export const AppProvider = ({ children }) => {
     if (e && e.preventDefault) e.preventDefault();
     setAuthError('');
     setAuthLoading(true);
-    setIsLoading(true);
+    // NOTE: don't toggle the global `isLoading` here — it makes ViewRouter swap
+    // the Login form for a full-screen loader, which unmounts Login and wipes
+    // authError on remount. The button's own `authLoading` is enough feedback.
     try {
       const u = await authApi.login(email, password);
       applyAuthenticatedUser(u);
@@ -255,7 +257,6 @@ export const AppProvider = ({ children }) => {
       setAuthError(apiError(err, 'Invalid email or password.'));
     } finally {
       setAuthLoading(false);
-      setIsLoading(false);
     }
   };
 
@@ -263,7 +264,6 @@ export const AppProvider = ({ children }) => {
   const handleRegisterSubmit = async ({ fullName, email: regE, phone, password: regP, confirmPassword }) => {
     setAuthError('');
     setAuthLoading(true);
-    setIsLoading(true);
     try {
       const u = await authApi.register({
         full_name: fullName,
@@ -280,7 +280,6 @@ export const AppProvider = ({ children }) => {
       return { ok: false, error: msg };
     } finally {
       setAuthLoading(false);
-      setIsLoading(false);
     }
   };
 
@@ -289,7 +288,6 @@ export const AppProvider = ({ children }) => {
     if (e && e.preventDefault) e.preventDefault();
     setAuthError('');
     setAuthLoading(true);
-    setIsLoading(true);
     try {
       const u = await authApi.login(adminEmail, adminPassword);
       if (!u?.is_staff) {
@@ -304,7 +302,6 @@ export const AppProvider = ({ children }) => {
       setAuthError(apiError(err, 'Invalid admin credentials.'));
     } finally {
       setAuthLoading(false);
-      setIsLoading(false);
     }
   };
 
@@ -325,6 +322,9 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     let active = true;
     (async () => {
+      // Decide local-vs-HF backend BEFORE any API call (probes the local
+      // backend; falls back to the HF Space if it's down).
+      await initApiBase();
       if (authApi.hasSession()) {
         try {
           const me = await authApi.getMe();
