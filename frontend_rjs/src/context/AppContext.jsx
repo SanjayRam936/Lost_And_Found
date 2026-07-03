@@ -194,29 +194,26 @@ export const AppProvider = ({ children }) => {
   const navigateTo = (view, e = null, params = null) => {
     if (e && e.preventDefault) e.preventDefault();
     window.scrollTo(0, 0);
-    
-    setIsLoading(true);
 
-    setTimeout(() => {
-      setCurrentView(view);
-      setCurrentParams(params || {});
-      
-      if (params?.regType) setRegType(params.regType);
-      
-      if (view === 'report' && !params?.editMode) {
-        setReportForm({ ...emptyReportForm, type: params?.type || 'lost' });
-      }
+    // Navigate instantly. The old code forced a 400ms setTimeout + a
+    // full-screen loader on every navigation, which made the app feel slow and
+    // flashed the spinner over each page. State updates below are synchronous.
+    setCurrentView(view);
+    setCurrentParams(params || {});
 
-      if (view === 'match-detail') {
-        setClaimStep('initial');
-      }
+    if (params?.regType) setRegType(params.regType);
 
-      if (view === 'account-settings') {
-        setShowSecuritySection(true);
-      }
-      
-      setIsLoading(false);
-    }, 400); // reduced from 600 for smoother navigation
+    if (view === 'report' && !params?.editMode) {
+      setReportForm({ ...emptyReportForm, type: params?.type || 'lost' });
+    }
+
+    if (view === 'match-detail') {
+      setClaimStep('initial');
+    }
+
+    if (view === 'account-settings') {
+      setShowSecuritySection(true);
+    }
   };
 
   // Apply an authenticated user to app state and route to the right home view.

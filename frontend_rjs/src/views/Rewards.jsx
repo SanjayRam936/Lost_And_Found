@@ -164,7 +164,7 @@ export const Rewards = () => {
           <button className="btn-primary" style={{ width: '100%', padding: '1rem' }} onClick={() => navigateTo('dashboard')}>Done — Back to Dashboard</button>
         ) : isOwner ? (
           <button className="btn-submit" disabled={!validAmount() || busy} onClick={handlePay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: validAmount() && !busy ? 1 : 0.5 }}>
-            {busy ? 'Processing…' : reward.razorpay_enabled ? <>Pay Reward via Razorpay <ExternalLink size={16} /></> : 'Send Reward (Demo)'}
+            {busy ? 'Processing…' : reward.razorpay_enabled ? <>Pay Reward via Razorpay <ExternalLink size={16} /></> : 'Send Reward'}
           </button>
         ) : (
           <button className="btn-submit" disabled style={{ opacity: 0.6 }}>Awaiting reward from owner</button>

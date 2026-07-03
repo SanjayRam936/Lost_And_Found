@@ -82,7 +82,9 @@ export const MyReports = () => {
                    </div>
                  </div>
                  <div className="report-body">
-                   <div className="report-img-box"><img src={r.image} alt={r.title} /></div>
+                   {r.image && (
+                     <div className="report-img-box"><img src={r.image} alt={r.title} /></div>
+                   )}
                    <div className="report-info">
                      <div className="report-title">{r.title}</div>
                      <div className="report-meta"><MapPin size={12} style={{display:'inline', marginRight: 4}}/>{r.location}</div>
