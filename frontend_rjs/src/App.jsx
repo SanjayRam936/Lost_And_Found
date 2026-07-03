@@ -27,6 +27,7 @@ import { FinderReward } from './views/FinderReward';
 import { RewardPayment } from './views/RewardPayment';
 import { LinkBank } from './views/LinkBank';
 import { Footer } from './components/Footer';
+import { ConfirmModal } from './components/ConfirmModal';
 
 const ViewRouter = () => {
   const { currentView, isLoading } = useAppContext();
@@ -79,6 +80,7 @@ const AppContent = () => {
         <ViewRouter />
       </div>
       {isLoggedIn ? <BottomNav /> : <Footer />}
+      <ConfirmModal />
     </div>
   );
 };

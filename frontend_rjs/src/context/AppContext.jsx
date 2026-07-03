@@ -18,6 +18,21 @@ export const AppProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // App-wide confirmation dialog (replaces the native window.confirm).
+  // askConfirm(config) opens the modal and resolves to true/false.
+  const [confirmConfig, setConfirmConfig] = useState(null);
+  const confirmResolver = useRef(null);
+  const askConfirm = (config) => new Promise((resolve) => {
+    confirmResolver.current = resolve;
+    setConfirmConfig(config || {});
+  });
+  const resolveConfirm = (result) => {
+    setConfirmConfig(null);
+    const r = confirmResolver.current;
+    confirmResolver.current = null;
+    if (r) r(result);
+  };
+
   // Authenticated user + auth feedback
   const [user, setUser] = useState(null);
   const [authError, setAuthError] = useState('');
@@ -375,12 +390,24 @@ export const AppProvider = ({ children }) => {
   };
 
   const handleDeleteReport = async (report) => {
-    if (!window.confirm('Are you sure you want to delete this report?')) return;
+    const ok = await askConfirm({
+      title: 'Delete this report?',
+      message: 'This permanently removes the report and any matches linked to it. This cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Keep',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await itemsApi.deleteReport(report);
       setReports((prev) => prev.filter((r) => r.id !== report.id));
     } catch (err) {
-      alert(apiError(err, 'Could not delete the report.'));
+      await askConfirm({
+        title: 'Could not delete',
+        message: apiError(err, 'Could not delete the report.'),
+        confirmText: 'OK',
+        cancelText: 'Close',
+      });
     }
   };
 
@@ -451,13 +478,22 @@ export const AppProvider = ({ children }) => {
 
   const handleDismissMatch = async () => {
     if (!currentMatch) return;
-    if (!window.confirm('This match will be removed. Proceed?')) return;
+    const ok = await askConfirm({
+      title: 'Remove this match?',
+      message: 'This match will be removed from your report. This cannot be undone.',
+      confirmText: 'Remove', cancelText: 'Keep', danger: true,
+    });
+    if (!ok) return;
     try {
       await matchesApi.dismissMatch(currentMatch.id);
       await fetchReports();
       navigateTo('my-reports');
     } catch (err) {
-      alert(apiError(err, 'Could not dismiss the match.'));
+      await askConfirm({
+        title: 'Could not remove',
+        message: apiError(err, 'Could not dismiss the match.'),
+        confirmText: 'OK', cancelText: 'Close',
+      });
     }
   };
 
@@ -516,12 +552,15 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const handleRejectMatch = (id) => {
-    if(window.confirm('This match will be removed. Proceed?')) {
-      setReports(reports.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
-      alert("This match has been removed.");
-      navigateTo('my-reports');
-    }
+  const handleRejectMatch = async (id) => {
+    const ok = await askConfirm({
+      title: 'Remove this match?',
+      message: 'This match will be removed.',
+      confirmText: 'Remove', cancelText: 'Keep', danger: true,
+    });
+    if (!ok) return;
+    setReports(reports.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+    navigateTo('my-reports');
   };
 
   return (
@@ -530,6 +569,7 @@ export const AppProvider = ({ children }) => {
       isLoggedIn, setIsLoggedIn, handleLoginSubmit, handleLogout,
       isAdmin, setIsAdmin, handleAdminLoginSubmit, handleRegisterSubmit,
       isLoading, setIsLoading,
+      confirmConfig, askConfirm, resolveConfirm,
       user, setUser, authError, setAuthError, authLoading, bootstrapping,
       
       email, setEmail, hasEmailError,
