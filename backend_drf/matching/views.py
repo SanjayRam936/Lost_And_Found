@@ -124,7 +124,13 @@ def _extract_ocr_text(image_path):
         return ''
     try:
         reader = get_ocr_reader()
-        results = reader.readtext(image_path, detail=0)
+        img_input = image_path
+        if isinstance(image_path, (bytes, bytearray)):
+            import io
+            import numpy as np
+            from PIL import Image
+            img_input = np.array(Image.open(io.BytesIO(image_path)).convert('RGB'))
+        results = reader.readtext(img_input, detail=0)
         return ' '.join(results).strip()
     except Exception as exc:
         logger.warning("OCR extraction failed: %s", exc)
@@ -150,8 +156,11 @@ def _clip_image_features(image_path):
     which is exactly the shared-space embedding CLIP compares against text.
     """
     from PIL import Image
+    import io
     model, processor = get_clip_model()
-    image = Image.open(image_path).convert('RGB')
+    # Accept raw bytes (from remote storage) or a filesystem path / file object.
+    src = io.BytesIO(image_path) if isinstance(image_path, (bytes, bytearray)) else image_path
+    image = Image.open(src).convert('RGB')
     inputs = processor(images=image, return_tensors="pt")
     inputs = {k: v.to(device) for k, v in inputs.items()}
     with torch.no_grad():
@@ -307,12 +316,19 @@ def get_match_status(confidence):
 # ════════════════════════════════════════════════════════════════════════════
 # PIPELINE
 # ════════════════════════════════════════════════════════════════════════════
-def _image_path(item):
-    """Safe filesystem path for an item's image, or None."""
+def _image_data(item):
+    """Raw bytes of an item's image, read through the storage backend so it
+    works for BOTH local disk and remote storage (Supabase/S3 has no local
+    filesystem `.path`). Returns None if there's no image or it can't be read."""
     if item and item.image and item.image.name:
         try:
-            return item.image.path
-        except Exception:
+            item.image.open('rb')
+            try:
+                return item.image.read()
+            finally:
+                item.image.close()
+        except Exception as exc:
+            logger.warning("could not read image %s: %s", item.image.name, exc)
             return None
     return None
 
@@ -325,7 +341,7 @@ def _score_pair(lost, found, found_ctx):
     """
     lost_desc = lost.description or ''
     found_desc = found.description or ''
-    lost_img = _image_path(lost)
+    lost_img = _image_data(lost)
     found_img = found_ctx['image_path']
 
     semantic = compute_semantic_score(lost_desc, found_desc)
@@ -365,7 +381,7 @@ def _score_pair(lost, found, found_ctx):
 
 def _build_found_context(found_item):
     """Precompute the found item's OCR text and CLIP image features once."""
-    found_img = _image_path(found_item)
+    found_img = _image_data(found_item)
     ocr_text = _extract_ocr_text(found_img) if found_img else ''
     image_features = None
     if _TORCH_OK and found_img:
