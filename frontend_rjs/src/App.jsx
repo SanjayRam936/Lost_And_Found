@@ -30,9 +30,11 @@ import { Footer } from './components/Footer';
 import { ConfirmModal } from './components/ConfirmModal';
 
 const ViewRouter = () => {
-  const { currentView, isLoading } = useAppContext();
+  const { currentView, isLoading, bootstrapping } = useAppContext();
 
-  if (isLoading) return (
+  // While the initial session check runs, show the loader instead of flashing
+  // the public landing page (which looked like being logged out on refresh).
+  if (bootstrapping || isLoading) return (
     <div className="loading-wrapper">
       <div className="loading-logo-container"><ShieldLogo size={48} /></div>
       <div className="spinner"></div>

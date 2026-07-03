@@ -340,7 +340,11 @@ export const AppProvider = ({ children }) => {
       if (authApi.hasSession()) {
         try {
           const me = await authApi.getMe();
-          if (active) applyAuthenticatedUser(me, { redirect: false });
+          // Restore the session AND route to the dashboard — otherwise a page
+          // refresh leaves a logged-in user stranded on the public landing page
+          // (which reads as "logged out"). There's no URL routing, so refresh
+          // always resets the view; the dashboard is the right landing spot.
+          if (active) applyAuthenticatedUser(me, { redirect: true });
         } catch {
           tokenStore.clear();
         }
