@@ -4,7 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { getCategoryIcon, getStatusBadge } from '../utils/helpers';
 
 export const MyReports = () => {
-  const { activeFilter, setActiveFilter, filteredReports, reports, handleEditReport, handleDeleteReport, navigateTo, openFinderClaim, openOwnerReward, openFinderReward } = useAppContext();
+  const { activeFilter, setActiveFilter, filteredReports, reports, handleEditReport, handleDeleteReport, navigateTo, openFinderClaim, openOwnerReward, openFinderReward, openImage } = useAppContext();
 
   const displayReports = filteredReports.filter(r => r.status !== 'rejected');
   // Lost items the AI matched (owner reviews) vs. found items the owner has
@@ -83,7 +83,11 @@ export const MyReports = () => {
                  </div>
                  <div className="report-body">
                    {r.image && (
-                     <div className="report-img-box"><img src={r.image} alt={r.title} /></div>
+                     <div className="report-img-box">
+                       <img src={r.image} alt={r.title} title="Click to view full image"
+                         onClick={(e) => { e.stopPropagation(); openImage(r.image); }}
+                         style={{ cursor: 'zoom-in' }} />
+                     </div>
                    )}
                    <div className="report-info">
                      <div className="report-title">{r.title}</div>

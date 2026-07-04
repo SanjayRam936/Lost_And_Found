@@ -33,6 +33,11 @@ export const AppProvider = ({ children }) => {
     if (r) r(result);
   };
 
+  // App-wide image lightbox — openImage(url) shows a full-screen zoom view.
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const openImage = (url) => { if (url) setLightboxImage(url); };
+  const closeImage = () => setLightboxImage(null);
+
   // Authenticated user + auth feedback
   const [user, setUser] = useState(null);
   const [authError, setAuthError] = useState('');
@@ -574,6 +579,7 @@ export const AppProvider = ({ children }) => {
       isAdmin, setIsAdmin, handleAdminLoginSubmit, handleRegisterSubmit,
       isLoading, setIsLoading,
       confirmConfig, askConfirm, resolveConfirm,
+      lightboxImage, openImage, closeImage,
       user, setUser, authError, setAuthError, authLoading, bootstrapping,
       
       email, setEmail, hasEmailError,

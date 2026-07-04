@@ -6,7 +6,7 @@ export const MatchDetail = () => {
   const {
     navigateTo, currentParams,
     currentMatch, matchLoading, claimError,
-    loadMatchForLost, handleInitiateClaim, handleDismissMatch, isLoading,
+    loadMatchForLost, handleInitiateClaim, handleDismissMatch, isLoading, openImage,
   } = useAppContext();
 
   const lostPk = currentParams?.lostPk;
@@ -51,7 +51,9 @@ export const MatchDetail = () => {
                </div>
                {found?.image && (
                  <div className="report-img-box" style={{ marginBottom: '1rem' }}>
-                   <img src={found.image} alt={found.title} style={{ maxHeight: 200, borderRadius: 8 }} />
+                   <img src={found.image} alt={found.title} title="Click to view full image"
+                     onClick={() => openImage(found.image)}
+                     style={{ maxHeight: 200, borderRadius: 8, cursor: 'zoom-in' }} />
                  </div>
                )}
                <p style={{fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--text-gray)'}}>{found?.description}</p>

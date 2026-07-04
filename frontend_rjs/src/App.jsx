@@ -28,6 +28,7 @@ import { RewardPayment } from './views/RewardPayment';
 import { LinkBank } from './views/LinkBank';
 import { Footer } from './components/Footer';
 import { ConfirmModal } from './components/ConfirmModal';
+import { ImageLightbox } from './components/ImageLightbox';
 
 const ViewRouter = () => {
   const { currentView, isLoading, bootstrapping } = useAppContext();
@@ -83,6 +84,7 @@ const AppContent = () => {
       </div>
       {isLoggedIn ? <BottomNav /> : <Footer />}
       <ConfirmModal />
+      <ImageLightbox />
     </div>
   );
 };
