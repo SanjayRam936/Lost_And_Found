@@ -141,7 +141,7 @@ export const ReportItem = () => {
 
             <div className="date-time-row">
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                 <label className="form-label">Date {isFound ? '' : <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span>}</label>
+                 <label className="form-label">Date {isFound ? <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--error, #DC2626)'}}>(Required)</span> : <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span>}</label>
                  <input
                    type="date"
                    className="form-input date-time-input"
@@ -152,7 +152,7 @@ export const ReportItem = () => {
                  {errText('date')}
               </div>
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                 <label className="form-label">Time {isFound ? '' : <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span>}</label>
+                 <label className="form-label">Time {isFound ? <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--error, #DC2626)'}}>(Required)</span> : <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span>}</label>
                  <input
                    type="time"
                    className="form-input date-time-input"
