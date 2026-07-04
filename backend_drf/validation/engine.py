@@ -34,18 +34,21 @@ def _read_bytes(image_file):
 
 
 def _validate_dates(date, time):
+    # NOTE: we deliberately do NOT reject "future" times. The client sends a
+    # naive HH:MM with no timezone, while the server runs in UTC — comparing the
+    # two wrongly flags valid local times (e.g. IST is +5:30 ahead of UTC) as
+    # being in the future. The date check below is unambiguous and enough.
+    from datetime import timedelta
     from django.utils import timezone
     errors = {}
     if date:
         today = timezone.localdate()
-        if date > today:
+        # 1-day grace so a user just past local midnight isn't wrongly flagged
+        # when the server clock (UTC) is still on the previous day.
+        if date > today + timedelta(days=1):
             errors['date'] = 'Future dates are not allowed.'
         elif (today - date).days > 365:
             errors['date'] = 'The date cannot be older than one year.'
-        # time-in-future only matters when the date is today
-        if not errors and time and date == today:
-            if time > timezone.localtime().time():
-                errors['time'] = 'The time cannot be in the future.'
     return errors
 
 
