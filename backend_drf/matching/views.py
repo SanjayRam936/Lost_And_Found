@@ -328,6 +328,34 @@ def compute_time_score(date1, date2):
 
 
 # --- Confidence -------------------------------------------------------------
+def compute_unique_id_signal(lost, found):
+    """Unique-identifier signal for a (lost, found) pair.
+
+    Returns (score, override, available):
+      * same IMEI          -> (1.0, 0.98, True)   near-certain match
+      * same serial number -> (1.0, 0.95, True)
+      * same model number  -> (0.5, None, True)   strong bonus, not definitive
+      * ids compared but no match -> (0.0, None, True)
+      * neither side has ids       -> (0.0, None, False)  weight redistributed
+    When `override` is not None the caller pins the final confidence to it.
+    """
+    def norm(v):
+        return (v or '').strip().lower()
+
+    checks = [
+        (norm(getattr(lost, 'imei_number', None)),   norm(getattr(found, 'imei_number', None)),   1.0, 0.98),
+        (norm(getattr(lost, 'serial_number', None)), norm(getattr(found, 'serial_number', None)), 1.0, 0.95),
+        (norm(getattr(lost, 'model_number', None)),  norm(getattr(found, 'model_number', None)),  0.5, None),
+    ]
+    available = False
+    for lv, fv, match_score, override in checks:
+        if lv and fv:
+            available = True
+            if lv == fv:
+                return match_score, override, True
+    return 0.0, None, available
+
+
 BASE_WEIGHTS = {
     'semantic':   0.25,   # NLP — description vs description
     'clip_cross': 0.25,   # CV  — owner text vs finder image
@@ -346,6 +374,12 @@ def compute_confidence(scores, owner_has_image):
     clip_image weight (0.15) is redistributed proportionally across the
     remaining signals so the weights always sum to exactly 1.0.
     """
+    # Unique-identifier override — a matching IMEI/serial pins near-certain
+    # confidence regardless of the other (fuzzy) signals.
+    override = scores.get('_unique_id_override')
+    if override is not None:
+        return round(float(override), 4)
+
     weights = dict(BASE_WEIGHTS)
     if not owner_has_image:
         removed = weights.pop('clip_image')
@@ -353,6 +387,13 @@ def compute_confidence(scores, owner_has_image):
         if remaining_total > 0:
             for key in weights:
                 weights[key] += removed * (weights[key] / remaining_total)
+
+    # unique_id carries weight 0.20 when identifiers are comparable; otherwise
+    # its weight is redistributed (the other weights already sum to 1.0).
+    if scores.get('unique_id_available'):
+        for key in weights:
+            weights[key] *= 0.80
+        weights['unique_id'] = 0.20
 
     confidence = 0.0
     for key, weight in weights.items():
@@ -438,6 +479,8 @@ def _score_pair(lost, found, found_ctx):
     else:
         location = compute_location_score(lost.latitude, lost.longitude, found.latitude, found.longitude)
 
+    uid_score, uid_override, uid_available = compute_unique_id_signal(lost, found)
+
     return {
         'semantic':   semantic,
         'clip_cross': clip_cross,
@@ -447,6 +490,9 @@ def _score_pair(lost, found, found_ctx):
         'color':      compute_color_score(lost.color, found.color),
         'location':   location,
         'time':       compute_time_score(lost.date, found.date),
+        'unique_id':  uid_score,
+        'unique_id_available': uid_available,
+        '_unique_id_override': uid_override,
     }, bool(lost_img)
 
 

@@ -54,4 +54,7 @@ urlpatterns = [
 
     #Escalations Routes
     path('escalation/', include('escalations.urls')),
+
+    #Validation Routes (real-time field check for the report forms)
+    path('validation/', include('validation.urls')),
 ]

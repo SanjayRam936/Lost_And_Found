@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'escalations',
     'claims',
     'chat',
+    'validation',
 ]
 
 MIDDLEWARE = [

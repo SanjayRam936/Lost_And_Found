@@ -1,5 +1,14 @@
 from rest_framework import serializers
+from validation.engine import run_report_validation
+from validation import spam_protector
 from .models import FoundItems
+
+# AI-prep fields are populated by the validation engine, never accepted from the
+# client (kept read-only so they can't be injected).
+_AI_PREP_FIELDS = [
+    'extracted_keywords', 'description_embedding', 'detected_objects',
+    'dominant_colors_detected', 'normalized_title', 'image_hash',
+]
 
 
 class FoundItemsSerializer(serializers.ModelSerializer):
@@ -11,7 +20,36 @@ class FoundItemsSerializer(serializers.ModelSerializer):
     class Meta:
         model = FoundItems
         fields = '__all__'
-        read_only_fields = ['user', 'created_at']
+        read_only_fields = ['user', 'created_at'] + _AI_PREP_FIELDS
+
+    # ── Full validation engine (photo MANDATORY for found reports) ──────────
+    def validate(self, attrs):
+        if self.instance is not None:
+            return attrs                               # skip heavy checks on edit
+
+        request = self.context.get('request')
+        result = run_report_validation(
+            attrs, attrs.get('image'),
+            getattr(request, 'user', None), request, is_found=True,
+        )
+        attrs.update(result['extracted'])              # save normalized/AI fields
+        if result.get('resolved_location'):
+            attrs['location'] = result['resolved_location']
+        self._validation_warnings = result.get('warnings', [])
+        return attrs
+
+    def create(self, validated_data):
+        instance = super().create(validated_data)
+        request = self.context.get('request')
+        spam_protector.record_submission(getattr(request, 'user', None), request)
+        return instance
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        warnings = getattr(self, '_validation_warnings', None)
+        if warnings:
+            data['validation_warnings'] = warnings     # non-blocking soft warnings
+        return data
 
     def get_is_matched(self, obj):
         from matching.models import MatchItem

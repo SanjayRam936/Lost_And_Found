@@ -35,6 +35,21 @@ class LostItems(models.Model):
     time           = models.TimeField(blank=True, null=True)
     image          = models.ImageField(upload_to='lost_items_images/', blank=True, null=True)
     status         = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
+
+    # ── Unique identifiers (validation feature; optional) ────────
+    serial_number = models.CharField(max_length=100, blank=True, null=True)
+    imei_number   = models.CharField(max_length=20, blank=True, null=True)
+    model_number  = models.CharField(max_length=100, blank=True, null=True)
+    reg_number    = models.CharField(max_length=50, blank=True, null=True)
+
+    # ── AI matching prep (populated by the validation engine) ────
+    extracted_keywords       = models.JSONField(default=list, blank=True)
+    description_embedding    = models.JSONField(default=list, blank=True)
+    detected_objects         = models.JSONField(default=list, blank=True)
+    dominant_colors_detected = models.JSONField(default=list, blank=True)
+    normalized_title         = models.CharField(max_length=255, blank=True, default='')
+    image_hash               = models.CharField(max_length=32, blank=True, default='')
+
     created_at     = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
