@@ -89,6 +89,7 @@ export const ClaimOtpFinder = () => {
                 onChange={(e) => handleOtpChange(idx, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(idx, e)}
                 maxLength={1}
+                placeholder="•"
                 autoComplete="off"
               />
             ))}

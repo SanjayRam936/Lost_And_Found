@@ -821,23 +821,36 @@
 }
 
 .claim-otp-input {
-  width: 50px;
-  height: 60px;
+  width: 52px;
+  height: 62px;
   font-size: 2rem;
   text-align: center;
-  border: 1px solid var(--border-light);
+  border: 2px solid #94A3B8;          /* clearly visible slate border */
   border-radius: 10px;
   outline: none;
   font-weight: 700;
   color: var(--text-dark);
   transition: all 0.2s;
-  background-color: var(--bg-alt);
+  background-color: #ffffff;           /* white so each box stands out from the card */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  caret-color: var(--primary);
+}
+
+.claim-otp-input::placeholder {
+  color: #CBD5E1;                      /* faint dot hint in each empty box */
+  font-weight: 400;
+}
+
+/* A filled box gets a stronger, primary-tinted border. */
+.claim-otp-input:not(:placeholder-shown) {
+  border-color: var(--primary);
+  background-color: #F0FDF9;
 }
 
 .claim-otp-input:focus {
   border-color: var(--primary);
   background-color: white;
-  box-shadow: 0 0 0 3px rgba(3, 92, 67, 0.1);
+  box-shadow: 0 0 0 3px rgba(3, 92, 67, 0.2);
 }
 
 .timeline-container {
