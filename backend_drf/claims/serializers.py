@@ -13,6 +13,7 @@ class ClaimSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'match', 'handover_type', 'otp_code', 'otp_verified',
             'otp_verified_at', 'status', 'role', 'wants_reward', 'created_at',
+            'verification_status', 'verification_score',
         ]
 
     def _user(self):

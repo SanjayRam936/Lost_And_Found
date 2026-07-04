@@ -166,7 +166,10 @@ export const AppProvider = ({ children }) => {
   const [reportsLoading, setReportsLoading] = useState(false);
 
   const emptyReportForm = {
-    pk: null, type: 'lost', category: '', title: '', brand: '', color: '', description: '', date: '', time: '', location: '', latitude: null, longitude: null, image: null, handoverMethod: 'direct', wantsReward: false,
+    pk: null, type: 'lost', category: '', title: '', brand: '', color: '', description: '', date: '', time: '', location: '', latitude: null, longitude: null,
+    // Feature 1 — location mode (lost items): EXACT pin vs ROUTE corridor.
+    locationType: 'EXACT', sourceLocation: '', sourceLat: null, sourceLng: null, destLocation: '', destLat: null, destLng: null,
+    image: null, handoverMethod: 'direct', wantsReward: false,
     handoverPlace: '', handoverLat: null, handoverLng: null
   };
   const [reportForm, setReportForm] = useState(emptyReportForm);
@@ -439,25 +442,29 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Owner initiates the claim -> generates the OTP (DIRECT) -> OTP screen.
+  // Owner initiates -> Step 0 ownership verification (which generates the OTP on
+  // success). The verification screen handles the rest of the routing.
   const handleInitiateClaim = async () => {
     if (!currentMatch) return;
     setClaimError('');
-    setIsLoading(true);
+    navigateTo('claim-verify');
+  };
+
+  // Feature 2 — submit ownership answers. On success the backend generated the
+  // OTP; we load the claim and tell the caller where to route next.
+  const handleVerifyOwnership = async (answers) => {
+    if (!currentMatch) return { ok: false, error: 'No match selected.' };
     try {
-      const claim = await claimsApi.initiateClaim(currentMatch.id);
-      setCurrentClaim(claim);
-      // POLICE / INSTITUTION: no OTP — show the collection-success screen.
-      if (claim.handover_type !== 'DIRECT') {
-        setCurrentView('claim-success');
-      } else {
-        setCurrentView('claim-otp-owner');
+      const res = await claimsApi.verifyOwnership(currentMatch.id, answers);
+      if (res.verified) {
+        const claim = await claimsApi.getClaim(res.claim_id);
+        setCurrentClaim(claim);
+        return { ok: true, status: res.verification_status, handoverType: res.handover_type };
       }
-      window.scrollTo(0, 0);
+      return { ok: false, ...res };
     } catch (err) {
-      setClaimError(apiError(err, 'Could not start the claim.'));
-    } finally {
-      setIsLoading(false);
+      const data = err?.response?.data || {};
+      return { ok: false, ...data, error: data.message || apiError(err, 'Verification failed.') };
     }
   };
 
@@ -608,7 +615,7 @@ export const AppProvider = ({ children }) => {
       claimRole, setClaimRole, generatedOtp, setGeneratedOtp, handoverMethod, setHandoverMethod,
       policeStationDetails, setPoliceStationDetails, customLocation, setCustomLocation,
       currentMatch, currentClaim, matchLoading, claimError,
-      loadMatchForLost, handleInitiateClaim, handleRegenerateOtp, handleVerifyOtp, handleDismissMatch, openFinderClaim, openOwnerReward, openFinderReward
+      loadMatchForLost, handleInitiateClaim, handleVerifyOwnership, handleRegenerateOtp, handleVerifyOtp, handleDismissMatch, openFinderClaim, openOwnerReward, openFinderReward
     }}>
       {children}
     </AppContext.Provider>

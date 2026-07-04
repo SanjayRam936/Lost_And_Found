@@ -29,6 +29,14 @@ function normalizeLost(it) {
     location: it.location || '',
     latitude: it.latitude ?? null,
     longitude: it.longitude ?? null,
+    // Feature 1 — route-based location.
+    locationType: it.location_type || 'EXACT',
+    sourceLocation: it.source_location || '',
+    sourceLat: it.source_latitude ?? null,
+    sourceLng: it.source_longitude ?? null,
+    destLocation: it.dest_location || '',
+    destLat: it.dest_latitude ?? null,
+    destLng: it.dest_longitude ?? null,
     date: it.date || '',
     time: it.time || '',
     image: it.image || null,
@@ -90,6 +98,25 @@ function buildItemBody(form, { found }) {
     date: form.date || null,
     time: form.time || null,
   };
+  // Feature 1 — route-based location (lost items only; found items always pin a point).
+  if (!found) {
+    const mode = form.locationType === 'ROUTE' ? 'ROUTE' : 'EXACT';
+    base.location_type = mode;
+    if (mode === 'ROUTE') {
+      base.source_location = form.sourceLocation || '';
+      base.source_latitude = form.sourceLat ?? null;
+      base.source_longitude = form.sourceLng ?? null;
+      base.dest_location = form.destLocation || '';
+      base.dest_latitude = form.destLat ?? null;
+      base.dest_longitude = form.destLng ?? null;
+      // The item's own location field is required; store a readable route summary.
+      base.location = (form.sourceLocation && form.destLocation)
+        ? `${form.sourceLocation} → ${form.destLocation}`
+        : (form.location || 'Route');
+      base.latitude = null;
+      base.longitude = null;
+    }
+  }
   if (found) {
     const handoverType = (form.handoverMethod === 'police'
       ? 'POLICE'

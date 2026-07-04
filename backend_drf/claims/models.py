@@ -31,6 +31,19 @@ class Claim(models.Model):
     otp_verified_at = models.DateTimeField(blank=True, null=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='INITIATED')
+
+    # ── Pre-claim ownership verification (Feature 2) ─────────────
+    VERIFICATION_CHOICES = [
+        ('PENDING',  'Pending'),
+        ('VERIFIED', 'Verified'),
+        ('PARTIAL',  'Partial'),
+        ('FAILED',   'Failed'),
+    ]
+    verification_status   = models.CharField(max_length=10, choices=VERIFICATION_CHOICES, default='PENDING')
+    verification_score    = models.IntegerField(default=0)
+    verification_attempts = models.IntegerField(default=0)
+    verification_locked_until = models.DateTimeField(blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

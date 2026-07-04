@@ -820,6 +820,9 @@
   margin-bottom: 2rem;
 }
 
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.9s linear infinite; }
+
 .claim-otp-input {
   width: 52px;
   height: 62px;

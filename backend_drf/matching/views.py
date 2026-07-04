@@ -249,6 +249,66 @@ def compute_location_score(lat1, lng1, lat2, lng2):
         return 0.0
 
 
+def _haversine_km(lat1, lng1, lat2, lng2):
+    R = 6371.0
+    p1 = math.radians(float(lat1)); p2 = math.radians(float(lat2))
+    dphi = math.radians(float(lat2) - float(lat1))
+    dlmb = math.radians(float(lng2) - float(lng1))
+    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlmb / 2) ** 2
+    return R * 2 * math.asin(math.sqrt(a))
+
+
+def compute_point_to_segment_distance(point_lat, point_lng,
+                                      seg_start_lat, seg_start_lng,
+                                      seg_end_lat, seg_end_lng):
+    """Feature 1 — shortest distance (km) from a GPS point to the segment between
+    (start) and (end). Uses a local equirectangular projection (km around the
+    segment's mean latitude) and clamps the closest point to the segment ends."""
+    if None in (point_lat, point_lng, seg_start_lat, seg_start_lng, seg_end_lat, seg_end_lng):
+        return float('inf')
+    try:
+        lat0 = math.radians((float(seg_start_lat) + float(seg_end_lat)) / 2.0)
+        kx = 111.320 * math.cos(lat0)   # km per degree of longitude at this latitude
+        ky = 110.574                    # km per degree of latitude
+
+        ax, ay = float(seg_start_lng) * kx, float(seg_start_lat) * ky
+        bx, by = float(seg_end_lng) * kx, float(seg_end_lat) * ky
+        px, py = float(point_lng) * kx, float(point_lat) * ky
+
+        dx, dy = bx - ax, by - ay
+        seg_len_sq = dx * dx + dy * dy
+        if seg_len_sq == 0:                                   # degenerate segment
+            return _haversine_km(point_lat, point_lng, seg_start_lat, seg_start_lng)
+        t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / seg_len_sq))
+        cx, cy = ax + t * dx, ay + t * dy
+        return math.hypot(px - cx, py - cy)
+    except Exception:
+        return float('inf')
+
+
+def compute_route_location_score(found_lat, found_lng,
+                                 src_lat, src_lng, dest_lat, dest_lng):
+    """Feature 1 (CASE B) — score a found GPS point against a lost item's ROUTE
+    corridor. The point must fall within the route's (padded) bounding box AND
+    within 10 km of the source->destination segment; score falls off with the
+    perpendicular distance. Routes use a wider 10 km radius than exact points."""
+    if None in (found_lat, found_lng, src_lat, src_lng, dest_lat, dest_lng):
+        return 0.0
+    try:
+        max_radius = 10.0
+        pad = max_radius / 110.574                            # ~padding in degrees latitude
+        if not (min(src_lat, dest_lat) - pad <= found_lat <= max(src_lat, dest_lat) + pad and
+                min(src_lng, dest_lng) - pad <= found_lng <= max(src_lng, dest_lng) + pad):
+            return 0.0
+        dist = compute_point_to_segment_distance(found_lat, found_lng,
+                                                 src_lat, src_lng, dest_lat, dest_lng)
+        if dist >= max_radius:
+            return 0.0
+        return round(1.0 - (dist / max_radius), 4)
+    except Exception:
+        return 0.0
+
+
 def compute_time_score(date1, date2):
     """1.0 for same day, linearly to 0.0 at a 30-day gap."""
     if not date1 or not date2:
@@ -367,6 +427,17 @@ def _score_pair(lost, found, found_ctx):
         except Exception as exc:
             logger.warning("CLIP image-image (pipeline) failed: %s", exc)
 
+    # Location: ROUTE lost items score the found GPS point against the travel
+    # corridor; EXACT lost items use the single-point Haversine distance.
+    if getattr(lost, 'location_type', 'EXACT') == 'ROUTE':
+        location = compute_route_location_score(
+            found.latitude, found.longitude,
+            lost.source_latitude, lost.source_longitude,
+            lost.dest_latitude, lost.dest_longitude,
+        )
+    else:
+        location = compute_location_score(lost.latitude, lost.longitude, found.latitude, found.longitude)
+
     return {
         'semantic':   semantic,
         'clip_cross': clip_cross,
@@ -374,7 +445,7 @@ def _score_pair(lost, found, found_ctx):
         'clip_image': clip_image,
         'category':   compute_category_score(lost.category, found.category),
         'color':      compute_color_score(lost.color, found.color),
-        'location':   compute_location_score(lost.latitude, lost.longitude, found.latitude, found.longitude),
+        'location':   location,
         'time':       compute_time_score(lost.date, found.date),
     }, bool(lost_img)
 

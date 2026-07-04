@@ -3,6 +3,7 @@ import { ImagePlus, MapPin } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { CustomSelect } from '../components/CustomSelect';
 import { MapPicker } from '../components/MapPicker';
+import { RouteLocationInput } from '../components/RouteLocationInput';
 import { CATEGORY_OPTIONS, COLOR_OPTIONS } from '../utils/helpers';
 
 export const ReportItem = () => {
@@ -28,11 +29,20 @@ export const ReportItem = () => {
     }
   };
 
+  const isRoute = !isFound && reportForm.locationType === 'ROUTE';
+
   const validate = () => {
     const e = {};
     if (!reportForm.title || !reportForm.title.trim()) e.title = 'Item title is required.';
     if (!reportForm.category) e.category = 'Please select a category.';
-    if (!reportForm.location || !reportForm.location.trim()) e.location = 'Please pick or enter a location.';
+
+    if (isRoute) {
+      // Route mode needs both endpoints resolved to coordinates.
+      if (reportForm.sourceLat == null || reportForm.sourceLng == null) e.source = 'Enter a valid source location.';
+      if (reportForm.destLat == null || reportForm.destLng == null) e.dest = 'Enter a valid destination location.';
+    } else if (!reportForm.location || !reportForm.location.trim()) {
+      e.location = 'Please pick or enter a location.';
+    }
 
     if (isFound) {
       // A photo is required for found reports (unless editing one that already
@@ -126,17 +136,54 @@ export const ReportItem = () => {
                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                  <MapPin size={16} color="var(--primary)" /> Location
                </label>
-               <MapPicker
-                 value={{ place: reportForm.location, lat: reportForm.latitude, lng: reportForm.longitude }}
-                 placeholder="Search where it was lost / found…"
-                 fallbackPlaceholder="Where was it?"
-                 onChange={(v) => update({
-                   location: v.place || (v.lat != null ? `${v.lat.toFixed(5)}, ${v.lng.toFixed(5)}` : ''),
-                   latitude: v.lat,
-                   longitude: v.lng,
-                 }, 'location')}
-               />
-               {errText('location')}
+
+               {/* Feature 1 — location mode toggle (lost items only). */}
+               {!isFound && (
+                 <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                   {[
+                     { key: 'EXACT', label: 'I know the exact location' },
+                     { key: 'ROUTE', label: 'I lost it along a route' },
+                   ].map((opt) => {
+                     const active = (reportForm.locationType || 'EXACT') === opt.key;
+                     return (
+                       <div key={opt.key} onClick={() => update({ locationType: opt.key })}
+                         style={{ flex: 1, padding: '0.6rem 0.5rem', textAlign: 'center', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                           border: `2px solid ${active ? 'var(--primary)' : 'var(--border-light)'}`, borderRadius: 10,
+                           background: active ? 'var(--primary-light)' : 'white', color: active ? 'var(--primary)' : 'var(--text-gray)' }}>
+                         {opt.label}
+                       </div>
+                     );
+                   })}
+                 </div>
+               )}
+
+               {isRoute ? (
+                 <RouteLocationInput
+                   value={{
+                     sourceLocation: reportForm.sourceLocation, sourceLat: reportForm.sourceLat, sourceLng: reportForm.sourceLng,
+                     destLocation: reportForm.destLocation, destLat: reportForm.destLat, destLng: reportForm.destLng,
+                   }}
+                   errors={errors}
+                   onChange={(patch) => {
+                     setReportForm((prev) => ({ ...prev, ...patch }));
+                     setErrors((prev) => { const n = { ...prev }; delete n.source; delete n.dest; return n; });
+                   }}
+                 />
+               ) : (
+                 <>
+                   <MapPicker
+                     value={{ place: reportForm.location, lat: reportForm.latitude, lng: reportForm.longitude }}
+                     placeholder="Search where it was lost / found…"
+                     fallbackPlaceholder="Where was it?"
+                     onChange={(v) => update({
+                       location: v.place || (v.lat != null ? `${v.lat.toFixed(5)}, ${v.lng.toFixed(5)}` : ''),
+                       latitude: v.lat,
+                       longitude: v.lng,
+                     }, 'location')}
+                   />
+                   {errText('location')}
+                 </>
+               )}
             </div>
 
             <div className="date-time-row">

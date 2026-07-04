@@ -16,6 +16,7 @@ import { Messages } from './views/Messages';
 import { ChatScreen } from './views/ChatScreen';
 import { Rewards } from './views/Rewards';
 import { ClaimOtpOwner } from './views/ClaimOtpOwner';
+import { ClaimVerifyOwnership } from './views/ClaimVerifyOwnership';
 import { ClaimOtpFinder } from './views/ClaimOtpFinder';
 import { ClaimHandoverMethod } from './views/ClaimHandoverMethod';
 import { ClaimPoliceStationFinder } from './views/ClaimPoliceStationFinder';
@@ -57,6 +58,7 @@ const ViewRouter = () => {
     case 'notifications': return <Notifications />;
     case 'messages': return <Messages />;
     case 'chat': return <ChatScreen />;
+    case 'claim-verify': return <ClaimVerifyOwnership />;
     case 'claim-otp-owner': return <ClaimOtpOwner />;
     case 'claim-otp-finder': return <ClaimOtpFinder />;
     case 'claim-handover-method': return <ClaimHandoverMethod />;

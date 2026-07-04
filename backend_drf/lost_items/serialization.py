@@ -12,6 +12,32 @@ class LostItemsSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['user', 'status', 'created_at']
 
+    def validate(self, attrs):
+        """Feature 1 — enforce the coordinates required by the chosen location mode.
+        EXACT needs a pinned lat/lng; ROUTE needs source + destination coordinates.
+        On a partial update (PATCH) fall back to the instance's current values."""
+        def current(field):
+            if field in attrs:
+                return attrs[field]
+            return getattr(self.instance, field, None)
+
+        location_type = current('location_type') or 'EXACT'
+
+        if location_type == 'EXACT':
+            if current('latitude') is None or current('longitude') is None:
+                raise serializers.ValidationError(
+                    {'location': 'An exact location requires a pinned latitude and longitude.'}
+                )
+        elif location_type == 'ROUTE':
+            missing = [f for f in (
+                'source_latitude', 'source_longitude', 'dest_latitude', 'dest_longitude'
+            ) if current(f) is None]
+            if missing:
+                raise serializers.ValidationError(
+                    {'location': 'A route location requires both source and destination coordinates.'}
+                )
+        return attrs
+
     def get_claim(self, obj):
         from claims.models import Claim
         claim = Claim.objects.filter(match__lost_item=obj).order_by('-created_at').first()

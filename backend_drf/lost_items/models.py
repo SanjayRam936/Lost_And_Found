@@ -18,6 +18,19 @@ class LostItems(models.Model):
     location       = models.CharField(max_length=255)
     latitude       = models.FloatField(blank=True, null=True)
     longitude      = models.FloatField(blank=True, null=True)
+
+    # ── Location mode (Feature 1) ────────────────────────────────
+    # EXACT: a single pinned point (latitude/longitude above).
+    # ROUTE: lost somewhere along a travel corridor (source -> destination).
+    LOCATION_TYPE_CHOICES = [('EXACT', 'Exact'), ('ROUTE', 'Route')]
+    location_type    = models.CharField(max_length=10, choices=LOCATION_TYPE_CHOICES, default='EXACT')
+    source_location  = models.CharField(max_length=255, blank=True, null=True)
+    source_latitude  = models.FloatField(blank=True, null=True)
+    source_longitude = models.FloatField(blank=True, null=True)
+    dest_location    = models.CharField(max_length=255, blank=True, null=True)
+    dest_latitude    = models.FloatField(blank=True, null=True)
+    dest_longitude   = models.FloatField(blank=True, null=True)
+
     date           = models.DateField(blank=True, null=True)
     time           = models.TimeField(blank=True, null=True)
     image          = models.ImageField(upload_to='lost_items_images/', blank=True, null=True)

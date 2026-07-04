@@ -1,0 +1,141 @@
+import React from 'react';
+import { ShieldCheck, AlertTriangle, XCircle, ArrowRight } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
+
+// Feature 2 — STEP 0 of the claim flow. The owner re-enters key details from
+// memory; on a strong-enough match the backend generates the OTP and we advance.
+export const ClaimVerifyOwnership = () => {
+  const { currentMatch, handleVerifyOwnership, navigateTo } = useAppContext();
+
+  const [form, setForm] = React.useState({ title: '', color: '', brand: '', unique_feature: '' });
+  const [errors, setErrors] = React.useState({});
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [attemptsLeft, setAttemptsLeft] = React.useState(null);
+  const [locked, setLocked] = React.useState(false);
+  const [partial, setPartial] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!currentMatch) navigateTo('my-reports');
+  }, [currentMatch, navigateTo]);
+
+  const set = (k, v) => {
+    setForm((prev) => ({ ...prev, [k]: v }));
+    setErrors((prev) => { const n = { ...prev }; delete n[k]; return n; });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const errs = {};
+    if (!form.title.trim()) errs.title = 'Please enter the item name.';
+    if (!form.color.trim()) errs.color = 'Please enter the color.';
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    setSubmitting(true);
+    setError('');
+    const res = await handleVerifyOwnership({
+      title: form.title.trim(),
+      color: form.color.trim(),
+      brand: form.brand.trim(),
+      unique_feature: form.unique_feature.trim(),
+    });
+    setSubmitting(false);
+
+    if (res.ok) {
+      const goto = res.handoverType && res.handoverType !== 'DIRECT' ? 'claim-success' : 'claim-otp-owner';
+      if (res.status === 'PARTIAL') {
+        setPartial(true);
+        setTimeout(() => navigateTo(goto), 1600);
+      } else {
+        navigateTo(goto);
+      }
+      return;
+    }
+
+    // Failure paths.
+    setError(res.error || res.message || 'Details do not match our records. Please check and try again.');
+    if (typeof res.attempts_left === 'number') setAttemptsLeft(res.attempts_left);
+    if (res.locked) setLocked(true);
+  };
+
+  if (partial) {
+    return (
+      <div className="dashboard-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="dashboard-container">
+          <div className="glass-card" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
+            <div className="success-circle" style={{ background: '#FEF3C7' }}>
+              <AlertTriangle size={44} color="#B45309" />
+            </div>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: '1rem 0 0.5rem' }}>Partially verified</h2>
+            <p style={{ color: 'var(--text-gray)' }}>
+              Some details partially matched — please ensure this is your item. Continuing…
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="dashboard-wrapper">
+      <div className="dashboard-container slide-up">
+        <div className="match-header-bar" onClick={() => navigateTo('match-detail', null, { lostPk: currentMatch?.lost_item?.id })}>
+          ← Back
+        </div>
+
+        <div className="dashboard-header">
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ShieldCheck size={24} color="var(--primary)" /> Verify Your Ownership
+          </h1>
+          <p>Please answer from memory — do not refer to your report.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="glass-card fade-in" noValidate>
+          <div className="form-group">
+            <label className="form-label">What is the item name?</label>
+            <input className="form-input" style={errors.title ? { borderColor: 'var(--error, #DC2626)' } : undefined}
+              value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Black Wallet" />
+            {errors.title && <div className="error-text" style={{ marginTop: 4 }}>{errors.title}</div>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">What color is it?</label>
+            <input className="form-input" style={errors.color ? { borderColor: 'var(--error, #DC2626)' } : undefined}
+              value={form.color} onChange={(e) => set('color', e.target.value)} placeholder="e.g. Silver" />
+            {errors.color && <div className="error-text" style={{ marginTop: 4 }}>{errors.color}</div>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">What is the brand? <span style={{ fontWeight: 400, fontSize: '0.8rem', color: 'var(--text-gray)' }}>Optional — leave blank if unknown</span></label>
+            <input className="form-input" value={form.brand} onChange={(e) => set('brand', e.target.value)} placeholder="e.g. HP, Apple" />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Any unique feature? <span style={{ fontWeight: 400, fontSize: '0.8rem', color: 'var(--text-gray)' }}>Optional</span></label>
+            <textarea className="form-textarea" rows={3} value={form.unique_feature}
+              onChange={(e) => set('unique_feature', e.target.value)}
+              placeholder="e.g. scratch on back cover, red sticker, broken clasp" />
+          </div>
+
+          {error && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--error, #DC2626)', background: '#FEE2E2', padding: 12, borderRadius: 8, marginBottom: '1rem' }}>
+              <XCircle size={20} />
+              <div>
+                <div style={{ fontWeight: 600 }}>{error}</div>
+                {!locked && typeof attemptsLeft === 'number' && (
+                  <div style={{ fontSize: '0.8rem' }}>{attemptsLeft} attempt(s) remaining.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <button type="submit" className="btn-submit" disabled={submitting || locked}
+            style={{ width: '100%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {locked ? 'Locked — try later' : submitting ? 'Verifying…' : <>Verify &amp; Continue <ArrowRight size={18} /></>}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};

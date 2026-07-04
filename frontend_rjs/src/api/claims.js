@@ -5,6 +5,12 @@ export async function initiateClaim(matchId) {
   return data;
 }
 
+// Feature 2 — ownership verification. On success the backend generates the OTP.
+export async function verifyOwnership(matchId, answers) {
+  const { data } = await api.post(`/claims/verify-ownership/${matchId}/`, answers);
+  return data;
+}
+
 export async function getClaim(claimId) {
   const { data } = await api.get(`/claims/${claimId}/`);
   return data;
