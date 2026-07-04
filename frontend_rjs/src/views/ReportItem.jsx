@@ -5,14 +5,33 @@ import { CustomSelect } from '../components/CustomSelect';
 import { MapPicker } from '../components/MapPicker';
 import { RouteLocationInput } from '../components/RouteLocationInput';
 import { CATEGORY_OPTIONS, COLOR_OPTIONS } from '../utils/helpers';
+import { useFormValidation } from '../hooks/useFormValidation';
+import { charCount, brandSuggestionsFor, uniqueIdFieldsFor } from '../utils/validationHelpers';
 
 export const ReportItem = () => {
   const { reportForm, setReportForm, handleReportSubmit, reportError, isLoading, navigateTo } = useAppContext();
   const fileRef = React.useRef(null);
   const [errors, setErrors] = React.useState({});
+  const { aiStatus, runAiCheck, clientValidate } = useFormValidation();
 
   const isEditing = !!reportForm.pk;
   const isFound = reportForm.type === 'found';
+  const uidFields = uniqueIdFieldsFor(reportForm.category);
+  const brandSuggestions = brandSuggestionsFor(reportForm.category);
+
+  // Small inline AI status chip for title/description (checking / ok / warn / error).
+  const aiChip = (field) => {
+    const st = aiStatus[field];
+    if (!st || st.state === 'idle') return null;
+    const map = {
+      checking: { c: 'var(--text-gray)', t: 'Checking…' },
+      ok: { c: '#047857', t: '✓ Looks good' },
+      warn: { c: '#B45309', t: st.message || 'Please double-check' },
+      error: { c: 'var(--error, #DC2626)', t: st.message || 'Please review' },
+    };
+    const m = map[st.state] || map.checking;
+    return <span style={{ fontSize: '0.75rem', color: m.c, marginLeft: 8 }}>{m.t}</span>;
+  };
 
   // Merge a patch into the latest form state (functional updater avoids stale
   // closures — important for async sources like the map / current location) and
@@ -32,29 +51,31 @@ export const ReportItem = () => {
   const isRoute = !isFound && reportForm.locationType === 'ROUTE';
 
   const validate = () => {
-    const e = {};
-    if (!reportForm.title || !reportForm.title.trim()) e.title = 'Item title is required.';
-    if (!reportForm.category) e.category = 'Please select a category.';
+    // Shared rules (title 3–100 + mash, category, description 30–5000, found
+    // photo/date/time, IMEI 15 digits) come from the reusable hook.
+    const e = { ...clientValidate(reportForm, isFound) };
 
+    // Location: route needs both endpoints resolved; exact needs a picked point.
     if (isRoute) {
-      // Route mode needs both endpoints resolved to coordinates.
       if (reportForm.sourceLat == null || reportForm.sourceLng == null) e.source = 'Enter a valid source location.';
       if (reportForm.destLat == null || reportForm.destLng == null) e.dest = 'Enter a valid destination location.';
     } else if (!reportForm.location || !reportForm.location.trim()) {
       e.location = 'Please pick or enter a location.';
     }
-
-    if (isFound) {
-      // A photo is required for found reports (unless editing one that already
-      // has an image on the server — image is not re-sent on edit).
-      if (!(reportForm.image instanceof File) && !isEditing) {
-        e.image = 'A photo is required for found items.';
-      }
-      if (!reportForm.date) e.date = 'Date is required for found items.';
-      if (!reportForm.time) e.time = 'Time is required for found items.';
-    }
     return e;
   };
+
+  // Submit is enabled only once the minimum required fields are present.
+  const requiredFilled = (() => {
+    const base = charCount(reportForm.title, 3, 100).ok
+      && !!reportForm.category
+      && charCount(reportForm.description, 30, 5000).ok
+      && (isRoute ? (reportForm.sourceLat != null && reportForm.destLat != null)
+                  : !!(reportForm.location && reportForm.location.trim()));
+    if (!isFound) return base;
+    return base && !!reportForm.date && !!reportForm.time
+      && (reportForm.image instanceof File || isEditing);
+  })();
 
   const onSubmit = (evt) => {
     evt.preventDefault();
@@ -80,6 +101,11 @@ export const ReportItem = () => {
            <p>Provide details to help our AI match it.</p>
          </div>
          <form className="report-form" onSubmit={onSubmit} noValidate>
+             {Object.keys(errors).length > 1 && (
+               <div className="error-text" style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: '#FEE2E2', borderRadius: 10 }}>
+                 Please fix the {Object.keys(errors).length} highlighted fields below before submitting.
+               </div>
+             )}
              <div className="type-selector" style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
                 <div
                    onClick={() => update({ type: 'lost' })}
@@ -96,9 +122,15 @@ export const ReportItem = () => {
              </div>
 
              <div className="form-group">
-               <label className="form-label">Item Title</label>
-               <input type="text" className="form-input" style={invalid('title')} placeholder="e.g. Black Wallet"
-                 value={reportForm.title} onChange={e => update({ title: e.target.value }, 'title')} />
+               <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                 <span>Item Title {aiChip('title')}</span>
+                 <span style={{ fontSize: '0.72rem', color: charCount(reportForm.title, 3, 100).ok ? 'var(--text-gray)' : 'var(--error, #DC2626)' }}>
+                   {charCount(reportForm.title, 3, 100).len}/100
+                 </span>
+               </label>
+               <input type="text" className="form-input" style={invalid('title')} placeholder="e.g. Black Wallet" maxLength={100}
+                 value={reportForm.title}
+                 onChange={e => { update({ title: e.target.value }, 'title'); runAiCheck('title', e.target.value, reportForm.category); }} />
                {errText('title')}
             </div>
 
@@ -120,6 +152,14 @@ export const ReportItem = () => {
                  <label className="form-label">Brand <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span></label>
                  <input type="text" className="form-input" placeholder="e.g. Casio, Apple"
                    value={reportForm.brand || ''} onChange={e => update({ brand: e.target.value })} />
+                 {brandSuggestions.length > 0 && !(reportForm.brand || '').trim() && (
+                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                     {brandSuggestions.map((b) => (
+                       <span key={b} onClick={() => update({ brand: b })}
+                         style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: 12, background: 'var(--primary-light)', color: 'var(--primary)', cursor: 'pointer' }}>{b}</span>
+                     ))}
+                   </div>
+                 )}
               </div>
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                  <label className="form-label">Color <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span></label>
@@ -131,6 +171,35 @@ export const ReportItem = () => {
                  />
               </div>
             </div>
+
+            {/* Unique identifiers — shown only for relevant categories; improve match accuracy. */}
+            {(uidFields.imei || uidFields.serial || uidFields.model || uidFields.reg) && (
+              <div className="form-group">
+                <label className="form-label">Unique Identifiers <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)' }}>(Optional — greatly improves matching)</span></label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {uidFields.imei && (
+                    <div>
+                      <input className="form-input" style={invalid('imei_number')} placeholder="IMEI number (15 digits)" inputMode="numeric" maxLength={15}
+                        value={reportForm.imei_number || ''}
+                        onChange={e => update({ imei_number: e.target.value.replace(/\D/g, '').slice(0, 15) }, 'imei_number')} />
+                      {errText('imei_number')}
+                    </div>
+                  )}
+                  {uidFields.serial && (
+                    <input className="form-input" placeholder="Serial number"
+                      value={reportForm.serial_number || ''} onChange={e => update({ serial_number: e.target.value })} />
+                  )}
+                  {uidFields.model && (
+                    <input className="form-input" placeholder="Model number (e.g. XPS 13)"
+                      value={reportForm.model_number || ''} onChange={e => update({ model_number: e.target.value })} />
+                  )}
+                  {uidFields.reg && (
+                    <input className="form-input" placeholder="Microchip / registration number"
+                      value={reportForm.reg_number || ''} onChange={e => update({ reg_number: e.target.value })} />
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -238,22 +307,32 @@ export const ReportItem = () => {
             </div>
 
             <div className="form-group">
-               <label htmlFor="item-description" className="form-label">Description</label>
+               <label htmlFor="item-description" className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                 <span>Description {aiChip('description')}</span>
+                 <span style={{ fontSize: '0.72rem', color: charCount(reportForm.description, 30, 5000).ok ? 'var(--text-gray)' : 'var(--error, #DC2626)' }}>
+                   {charCount(reportForm.description, 30, 5000).tooShort
+                     ? `${charCount(reportForm.description, 30, 5000).remaining} more to reach 30`
+                     : `${(reportForm.description || '').length}/5000`}
+                 </span>
+               </label>
                <textarea
                   id="item-description"
                   className="form-textarea"
+                  style={invalid('description')}
                   placeholder="Describe your item in detail (brand, color, size, identifying marks, serial number, contents, where and when it was lost, reward information if any, etc.)"
                   value={reportForm.description || ''}
                   onChange={e => {
                       const val = e.target.value;
                       if (val.length <= 5000) {
-                          update({ description: val });
+                          update({ description: val }, 'description');
+                          runAiCheck('description', val, reportForm.category);
                       }
                   }}
                   onBlur={e => update({ description: e.target.value.trim() })}
                   maxLength={5000}
                   aria-label="Item description"
                />
+               {errText('description')}
                <div className="textarea-footer">
                    <p className="helper-text">
                        You can provide detailed information to help others identify your item more accurately. Include unique features, brand, color, serial number, location, date/time, or any other identifying details.
@@ -329,7 +408,10 @@ export const ReportItem = () => {
               <div className="error-text" style={{ marginBottom: '1rem' }}>Please fix the highlighted fields above.</div>
             )}
             {reportError && <div className="error-text" style={{ marginBottom: '1rem' }}>{reportError}</div>}
-            <button type="submit" className="btn-submit" disabled={isLoading}>{isLoading ? 'Submitting…' : 'Submit Report'}</button>
+            <button type="submit" className="btn-submit" disabled={isLoading || !requiredFilled}
+              style={!requiredFilled && !isLoading ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}>
+              {isLoading ? 'Submitting…' : 'Submit Report'}
+            </button>
             <button type="button" className="btn-cancel" onClick={() => navigateTo('dashboard')}>Cancel</button>
          </form>
        </div>

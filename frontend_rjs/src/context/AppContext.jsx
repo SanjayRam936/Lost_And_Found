@@ -169,6 +169,8 @@ export const AppProvider = ({ children }) => {
     pk: null, type: 'lost', category: '', title: '', brand: '', color: '', description: '', date: '', time: '', location: '', latitude: null, longitude: null,
     // Feature 1 — location mode (lost items): EXACT pin vs ROUTE corridor.
     locationType: 'EXACT', sourceLocation: '', sourceLat: null, sourceLng: null, destLocation: '', destLat: null, destLng: null,
+    // Unique identifiers (optional; shown per category).
+    serial_number: '', imei_number: '', model_number: '', reg_number: '',
     image: null, handoverMethod: 'direct', wantsReward: false,
     handoverPlace: '', handoverLat: null, handoverLng: null
   };

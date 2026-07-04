@@ -97,6 +97,11 @@ function buildItemBody(form, { found }) {
     longitude: form.longitude ?? null,
     date: form.date || null,
     time: form.time || null,
+    // Unique identifiers (optional; shown only for relevant categories).
+    serial_number: form.serial_number || '',
+    imei_number: form.imei_number || '',
+    model_number: form.model_number || '',
+    reg_number: form.reg_number || '',
   };
   // Feature 1 — route-based location (lost items only; found items always pin a point).
   if (!found) {
