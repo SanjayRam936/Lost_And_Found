@@ -38,14 +38,13 @@ def _validate_dates(date, time):
     # naive HH:MM with no timezone, while the server runs in UTC — comparing the
     # two wrongly flags valid local times (e.g. IST is +5:30 ahead of UTC) as
     # being in the future. The date check below is unambiguous and enough.
-    from datetime import timedelta
     from django.utils import timezone
     errors = {}
     if date:
+        # localdate() now returns the IST date (TIME_ZONE=Asia/Kolkata), so it
+        # matches the user's own "today" — no timezone grace needed.
         today = timezone.localdate()
-        # 1-day grace so a user just past local midnight isn't wrongly flagged
-        # when the server clock (UTC) is still on the previous day.
-        if date > today + timedelta(days=1):
+        if date > today:
             errors['date'] = 'Future dates are not allowed.'
         elif (today - date).days > 365:
             errors['date'] = 'The date cannot be older than one year.'
