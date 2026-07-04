@@ -121,10 +121,18 @@ function forceLogout() {
 }
 
 // Normalise a DRF error response into a single human-readable string.
+// NEVER returns a raw server error page / HTML — a 5xx or an HTML body always
+// becomes a friendly message so users don't see "Server Error (500)" markup.
 export function apiError(err, fallback = 'Something went wrong. Please try again.') {
+  const status = err?.response?.status;
   const data = err?.response?.data;
+
+  const looksLikeHtml = typeof data === 'string' && /<!doctype|<html|<body|Server Error/i.test(data);
+  if (status >= 500 || looksLikeHtml) {
+    return 'Something went wrong on our side. Please try again in a moment.';
+  }
   if (!data) return err?.message || fallback;
-  if (typeof data === 'string') return data;
+  if (typeof data === 'string') return data.length <= 300 ? data : fallback;
   if (data.detail) return data.detail;
   const first = Object.values(data)[0];
   if (Array.isArray(first)) return first[0];

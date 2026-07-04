@@ -250,6 +250,8 @@ REST_FRAMEWORK = {
     ),
     # OpenAPI schema generation for Swagger UI / ReDoc.
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # Return clean JSON (never raw HTML) for unhandled server errors.
+    'EXCEPTION_HANDLER': 'api.exception_handlers.custom_exception_handler',
 }
 
 SPECTACULAR_SETTINGS = {

@@ -30,6 +30,7 @@ import { LinkBank } from './views/LinkBank';
 import { Footer } from './components/Footer';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ImageLightbox } from './components/ImageLightbox';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const ViewRouter = () => {
   const { currentView, isLoading, bootstrapping } = useAppContext();
@@ -93,8 +94,10 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
