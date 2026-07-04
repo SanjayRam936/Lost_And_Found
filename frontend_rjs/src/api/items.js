@@ -4,9 +4,16 @@ import api from './client';
 function normalizeLost(it) {
   const claim = it.claim || null;
   let status = (it.status || 'ACTIVE').toLowerCase(); // active | matched | resolved
-  // Resolved + finder opted into a reward + not yet paid -> owner must pay.
-  if (claim && claim.status === 'RESOLVED' && claim.wants_reward && claim.reward_status !== 'RELEASED') {
-    status = 'reward-due';
+  // Derive the owner-facing status from the claim lifecycle so a completed
+  // handover never keeps showing "Review Match" (even if the item's own status
+  // field lags). Reward-due > resolved > (matched from the item's status).
+  if (claim) {
+    if (claim.status === 'RESOLVED') {
+      status = (claim.wants_reward && claim.reward_status !== 'RELEASED') ? 'reward-due' : 'resolved';
+    } else if (claim.status === 'HANDED_OVER') {
+      // Police / institution drop-off completed (no OTP step).
+      status = 'resolved';
+    }
   }
   return {
     id: `lost-${it.id}`, // unique key across the merged lost+found list

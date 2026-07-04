@@ -4,7 +4,14 @@ import { useAppContext } from '../context/AppContext';
 import { getCategoryIcon, getStatusBadge } from '../utils/helpers';
 
 export const MyReports = () => {
-  const { activeFilter, setActiveFilter, filteredReports, reports, handleEditReport, handleDeleteReport, navigateTo, openFinderClaim, openOwnerReward, openFinderReward, openImage } = useAppContext();
+  const { activeFilter, setActiveFilter, filteredReports, reports, handleEditReport, handleDeleteReport, navigateTo, openFinderClaim, openOwnerReward, openFinderReward, openImage, fetchReports } = useAppContext();
+
+  // Refetch every time this screen opens so statuses (e.g. a handover the finder
+  // completed on their own device) are always current — no stale "Review Match".
+  React.useEffect(() => {
+    fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const displayReports = filteredReports.filter(r => r.status !== 'rejected');
   // Lost items the AI matched (owner reviews) vs. found items the owner has
