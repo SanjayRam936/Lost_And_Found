@@ -357,15 +357,19 @@ def compute_unique_id_signal(lost, found):
 
 
 BASE_WEIGHTS = {
-    'semantic':   0.25,   # NLP — description vs description
-    'clip_cross': 0.25,   # CV  — owner text vs finder image
-    'ocr':        0.10,   # OCR extracted text vs description
-    'clip_image': 0.15,   # CV  — image vs image (only when owner has image)
+    'semantic':   0.22,   # NLP — description vs description
+    'clip_cross': 0.22,   # CV  — owner text vs finder image
+    'ocr':        0.08,   # OCR extracted text vs description
+    'clip_image': 0.13,   # CV  — image vs image (only when owner has image)
     'category':   0.10,
-    'color':      0.08,
-    'location':   0.05,
+    'color':      0.15,   # colour is a strong discriminator — weighted higher
+    'location':   0.08,   # location weighted higher too
     'time':       0.02,
 }
+
+# When both items give a colour and they differ, multiply the final confidence
+# by this factor so a different-coloured same-model item drops below threshold.
+COLOR_MISMATCH_PENALTY = 0.4
 
 
 def compute_confidence(scores, owner_has_image):
@@ -399,6 +403,10 @@ def compute_confidence(scores, owner_has_image):
     for key, weight in weights.items():
         value = float(scores.get(key, 0.0) or 0.0)
         confidence += max(0.0, min(1.0, value)) * weight
+
+    # Colour conflict -> heavy penalty (a black vs gold phone shouldn't match).
+    if scores.get('color_conflict'):
+        confidence *= COLOR_MISMATCH_PENALTY
     return round(confidence, 4)
 
 
@@ -481,6 +489,13 @@ def _score_pair(lost, found, found_ctx):
 
     uid_score, uid_override, uid_available = compute_unique_id_signal(lost, found)
 
+    # Colour is a strong discriminator: if BOTH sides give a colour and they
+    # differ, it's almost certainly a different item (e.g. black vs gold phone).
+    color_conflict = bool(
+        lost.color and found.color
+        and str(lost.color).strip().lower() != str(found.color).strip().lower()
+    )
+
     return {
         'semantic':   semantic,
         'clip_cross': clip_cross,
@@ -493,6 +508,7 @@ def _score_pair(lost, found, found_ctx):
         'unique_id':  uid_score,
         'unique_id_available': uid_available,
         '_unique_id_override': uid_override,
+        'color_conflict': color_conflict,
     }, bool(lost_img)
 
 
@@ -554,9 +570,14 @@ def _persist_match(lost_item, found_item, confidence, scores):
 
 
 def run_matching_for_found(found_item):
-    """Score a found item against all ACTIVE lost items; save the top 5."""
+    """Score a found item against all ACTIVE, UNCLAIMED lost items; save the top 5.
+
+    Once an item is part of a claim it is resolved/in-progress and must not be
+    re-matched — this also shrinks the candidate set and speeds matching up.
+    """
     found_ctx = _build_found_context(found_item)
-    lost_items = LostItems.objects.filter(status='ACTIVE')
+    lost_items = LostItems.objects.filter(status='ACTIVE').exclude(
+        matches__claim__isnull=False).distinct()
 
     scored = []
     for lost in lost_items:
@@ -569,8 +590,12 @@ def run_matching_for_found(found_item):
 
 
 def run_matching_for_lost(lost_item):
-    """Score a newly-created lost item against all found items; save the top 5."""
-    found_items = FoundItems.objects.all()
+    """Score a newly-created lost item against all UNCLAIMED found items; save top 5.
+
+    A found item that already has a claim has been (or is being) returned to its
+    owner, so it is excluded from further matching.
+    """
+    found_items = FoundItems.objects.exclude(matches__claim__isnull=False).distinct()
     scored = []
     for found in found_items:
         found_ctx = _build_found_context(found)

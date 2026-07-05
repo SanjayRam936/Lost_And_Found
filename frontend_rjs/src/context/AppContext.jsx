@@ -470,6 +470,23 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Owner proceeds from an ALREADY-VERIFIED match straight to the handover OTP
+  // (no re-verification once the OTP has been generated).
+  const openOwnerHandover = async () => {
+    if (!currentMatch?.claim_id) return;
+    setClaimError('');
+    setIsLoading(true);
+    try {
+      const claim = await claimsApi.getClaim(currentMatch.claim_id);
+      setCurrentClaim(claim);
+      navigateTo(claim.handover_type !== 'DIRECT' ? 'claim-success' : 'claim-otp-owner');
+    } catch (err) {
+      setClaimError(apiError(err, 'Could not open the handover.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRegenerateOtp = async () => {
     if (!currentClaim) return;
     try {
@@ -617,7 +634,7 @@ export const AppProvider = ({ children }) => {
       claimRole, setClaimRole, generatedOtp, setGeneratedOtp, handoverMethod, setHandoverMethod,
       policeStationDetails, setPoliceStationDetails, customLocation, setCustomLocation,
       currentMatch, currentClaim, matchLoading, claimError,
-      loadMatchForLost, handleInitiateClaim, handleVerifyOwnership, handleRegenerateOtp, handleVerifyOtp, handleDismissMatch, openFinderClaim, openOwnerReward, openFinderReward
+      loadMatchForLost, handleInitiateClaim, handleVerifyOwnership, openOwnerHandover, handleRegenerateOtp, handleVerifyOtp, handleDismissMatch, openFinderClaim, openOwnerReward, openFinderReward
     }}>
       {children}
     </AppContext.Provider>
