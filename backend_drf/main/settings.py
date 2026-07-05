@@ -137,6 +137,12 @@ DATABASES = {
         'PASSWORD': env_str('POSTGRES_PASSWORD', 'postgres'),
         'HOST': env_str('POSTGRES_HOST', 'localhost'),
         'PORT': env_str('POSTGRES_PORT', '5432'),
+        # Reuse DB connections across requests (up to 60s) instead of opening a
+        # fresh SSL handshake to Supabase every time — big latency win on reads.
+        # Safe with Supabase's SESSION pooler (port 5432). Health-check avoids
+        # handing a stale/broken connection to a request.
+        'CONN_MAX_AGE': 60,
+        'CONN_HEALTH_CHECKS': True,
         # Managed Postgres (e.g. Supabase) requires SSL. Set POSTGRES_SSLMODE=require.
         'OPTIONS': ({'sslmode': env_str('POSTGRES_SSLMODE')}
                     if env_str('POSTGRES_SSLMODE') else {}),

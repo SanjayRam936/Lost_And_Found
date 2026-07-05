@@ -46,6 +46,10 @@ class FoundItemsSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        # Strip internal AI-prep fields (esp. the 384-float embedding) from the
+        # API payload — only the matching engine uses them server-side.
+        for f in _AI_PREP_FIELDS:
+            data.pop(f, None)
         warnings = getattr(self, '_validation_warnings', None)
         if warnings:
             data['validation_warnings'] = warnings     # non-blocking soft warnings

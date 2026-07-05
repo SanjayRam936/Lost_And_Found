@@ -63,6 +63,10 @@ class LostItemsSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        # Strip internal AI-prep fields (esp. the 384-float embedding) from the
+        # API payload — they're only used server-side by the matching engine.
+        for f in _AI_PREP_FIELDS:
+            data.pop(f, None)
         warnings = getattr(self, '_validation_warnings', None)
         if warnings:
             data['validation_warnings'] = warnings
