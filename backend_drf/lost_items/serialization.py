@@ -56,7 +56,15 @@ class LostItemsSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        instance = super().create(validated_data)
+        try:
+            instance = super().create(validated_data)
+        except serializers.ValidationError:
+            raise
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).exception("Lost report save failed: %s", exc)
+            raise serializers.ValidationError(
+                {'detail': 'We could not save your report right now (the photo upload may have failed). Please try again in a moment.'})
         request = self.context.get('request')
         spam_protector.record_submission(getattr(request, 'user', None), request)
         return instance
