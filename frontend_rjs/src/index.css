@@ -1004,3 +1004,68 @@
   padding-left: 0.5rem;
   animation: fadeIn 0.3s ease-in-out;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESKTOP / WEB-APP LAYOUT  (≥ 1025px)
+   The mobile-first base above is left completely untouched below 1025px, so the
+   phone experience is unchanged. On wide screens the logged-in app turns into a
+   proper web app: a full-width top bar, a left sidebar for navigation, and a
+   wide, centered content area. Forms & detail cards stay at a comfortable
+   reading width so they don't stretch across the whole screen.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1025px) {
+  /* Deterministic top-bar height so the fixed sidebar can sit right below it. */
+  .navbar { min-height: 66px; padding: 0 28px; }
+
+  /* Mobile bottom tab bar  ->  left sidebar (logged-in views only; the admin
+     dashboard renders no bottom-nav and keeps its own layout). */
+  .app-container.has-bottom-nav .bottom-nav {
+    top: 68px; bottom: 0; left: 0; right: auto;
+    width: 244px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.35rem;
+    padding: 1.5rem 0.9rem;
+    border-top: none;
+    border-right: 1px solid var(--border-light);
+    box-shadow: 2px 0 14px -10px rgba(16, 24, 40, 0.2);
+  }
+  .app-container.has-bottom-nav .bottom-nav .nav-item {
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+  }
+  .app-container.has-bottom-nav .bottom-nav .nav-item:hover,
+  .app-container.has-bottom-nav .bottom-nav .nav-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+
+  /* Content sits beside the sidebar; the mobile bottom padding is removed. The
+     :has() guard means the left gutter is only reserved when a sidebar is
+     actually rendered (so the admin dashboard, which has none, spans full width). */
+  .app-container.has-bottom-nav .main-content { padding-bottom: 0; }
+  .app-container.has-bottom-nav:has(.bottom-nav) .main-content { padding-left: 244px; }
+
+  /* Wider, centered content columns. */
+  .dashboard-wrapper { padding: 2rem 2.5rem; }
+  .dashboard-container { max-width: 900px; }
+  .section-container { max-width: 960px; padding: 4rem 2rem; }
+
+  /* Keep forms & detail cards at a readable width, centered in the wide column. */
+  .report-form { max-width: 720px; margin: 0 auto; width: 100%; }
+  .match-card { max-width: 760px; margin-left: auto; margin-right: auto; }
+
+  /* Reports use the extra width as a two-column grid. */
+  .report-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
+
+  /* Landing page: hero actions & feature cards go side by side. */
+  .hero-buttons { flex-direction: row; }
+  .features-row { flex-direction: row; }
+  .features-row .feature-item { flex: 1; }
+}
