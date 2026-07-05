@@ -12,13 +12,17 @@ serializer.validate() -> run_report_validation(...) which:
 `is_found` toggles the only behavioural difference: photo optional vs mandatory.
 """
 import io
+import logging
 import re
 
 from rest_framework import serializers
+from rest_framework.exceptions import Throttled
 
 from . import text_validator, image_validator, location_validator, \
     cross_field_validator, duplicate_detector, spam_protector, ai_prep
 from .constants import CATEGORIES, COLORS
+
+logger = logging.getLogger(__name__)
 
 
 def _read_bytes(image_file):
@@ -70,6 +74,20 @@ def _validate_unique_ids(data):
 
 
 def run_report_validation(data, image_file, user, request, is_found):
+    """Public entry point. Real validation failures (ValidationError) and rate
+    limits (Throttled) propagate; any UNEXPECTED error is logged and swallowed so
+    a validation bug can never 500 a submission — the report just saves without
+    the extra fields."""
+    try:
+        return _run_report_validation(data, image_file, user, request, is_found)
+    except (serializers.ValidationError, Throttled):
+        raise
+    except Exception as exc:
+        logger.exception("Validation engine crashed — allowing submit: %s", exc)
+        return {'extracted': {}, 'resolved_location': None, 'warnings': []}
+
+
+def _run_report_validation(data, image_file, user, request, is_found):
     # 0) Rate limiting first (cheap; raises 429 before any heavy work).
     spam_protector.check_limits(user, request)
 

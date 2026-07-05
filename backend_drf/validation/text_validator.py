@@ -52,10 +52,13 @@ def _is_keyboard_mash(text):
     for seq in _KEYBOARD_SEQUENCES:
         if seq in compact:
             return True
-    # 3) low entropy: too few distinct characters for the length
-    letters = re.sub(r'\s', '', t)
-    if len(letters) >= 6 and len(set(letters)) / len(letters) < 0.35:
-        return True
+    # 3) low entropy — ONLY for a single unbroken token. Real sentences have
+    #    spaces and varied words and legitimately have a lowish unique-char
+    #    ratio, so applying this to multi-word text false-flags normal input.
+    if ' ' not in t:
+        letters = re.sub(r'[^a-z0-9]', '', t)
+        if len(letters) >= 6 and len(set(letters)) / len(letters) < 0.45:
+            return True
     return False
 
 

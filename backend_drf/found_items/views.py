@@ -11,8 +11,13 @@ class ReportFoundItemView(generics.CreateAPIView):
     def perform_create(self, serializer):
         found_item = serializer.save(user=self.request.user)
         # Automatically match this found item against all active lost items.
-        from matching.services import run_matching_for_found
-        run_matching_for_found(found_item)
+        # Matching must never fail the submission — a report is saved regardless.
+        try:
+            from matching.services import run_matching_for_found
+            run_matching_for_found(found_item)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("Matching failed for found item %s", found_item.id)
 
 
 class MyFoundItemsView(generics.ListAPIView):
