@@ -4,6 +4,39 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import User
 
+# Known temporary / disposable email providers — registrations with these are
+# rejected so accounts are tied to a usable inbox.
+DISPOSABLE_EMAIL_DOMAINS = {
+    'mailinator.com', '10minutemail.com', '10minutemail.net', 'guerrillamail.com',
+    'guerrillamail.net', 'tempmail.com', 'temp-mail.org', 'yopmail.com',
+    'throwawaymail.com', 'trashmail.com', 'getnada.com', 'sharklasers.com',
+    'dispostable.com', 'maildrop.cc', 'fakeinbox.com', 'mailnesia.com',
+    'mohmal.com', 'moakt.com', 'mintemail.com', 'emailondeck.com', 'tempinbox.com',
+    '33mail.com', 'spam4.me', 'grr.la', 'inboxbear.com', 'tempr.email',
+}
+
+
+def _domain_has_mail_server(domain):
+    """True if the domain has an MX (or A) record — i.e. can receive mail.
+    Returns False only when the domain provably has no mail server; any lookup
+    error is FAIL-OPEN (we don't block real users on a transient DNS hiccup)."""
+    try:
+        import dns.resolver
+    except Exception:
+        return True                                    # library missing -> skip check
+    try:
+        answers = dns.resolver.resolve(domain, 'MX', lifetime=4)
+        return len(answers) > 0
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.resolver.NoNameservers):
+        # No mail servers / domain doesn't exist -> not a real email domain.
+        try:
+            dns.resolver.resolve(domain, 'A', lifetime=4)   # some domains accept mail via A
+            return True
+        except Exception:
+            return False
+    except Exception:
+        return True                                    # timeout / other -> fail-open
+
 
 class UserSerializer(serializers.ModelSerializer):
     """Public-facing representation of a user (never exposes the password)."""
@@ -28,9 +61,20 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['id', 'full_name', 'email', 'phone_number', 'password', 'password2']
 
     def validate_email(self, value):
+        value = (value or '').strip().lower()
+        if '@' not in value:
+            raise serializers.ValidationError('Please enter a valid email address.')
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError('A user with this email already exists.')
-        return value.lower()
+
+        domain = value.rsplit('@', 1)[-1]
+        if domain in DISPOSABLE_EMAIL_DOMAINS:
+            raise serializers.ValidationError(
+                'Temporary or disposable email addresses are not allowed. Please use a real email.')
+        if not _domain_has_mail_server(domain):
+            raise serializers.ValidationError(
+                'That email domain does not exist. Please use a real email address.')
+        return value
 
     def validate(self, attrs):
         if attrs['password'] != attrs.pop('password2'):

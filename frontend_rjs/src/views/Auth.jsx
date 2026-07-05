@@ -104,7 +104,8 @@ export const Register = () => {
 
   const validateEmail = (email) => {
     if (!email) return "Email is required.";
-    if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email)) return "Please enter a valid Gmail address (example@gmail.com).";
+    // Accept any valid email format; the backend blocks fake/disposable domains.
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return "Please enter a valid email address.";
     return "";
   };
 
