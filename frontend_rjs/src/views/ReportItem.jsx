@@ -6,7 +6,7 @@ import { MapPicker } from '../components/MapPicker';
 import { RouteLocationInput } from '../components/RouteLocationInput';
 import { CATEGORY_OPTIONS, COLOR_OPTIONS } from '../utils/helpers';
 import { useFormValidation } from '../hooks/useFormValidation';
-import { charCount, brandSuggestionsFor, uniqueIdFieldsFor } from '../utils/validationHelpers';
+import { charCount, brandSuggestionsFor, uniqueIdFieldsFor, todayStr } from '../utils/validationHelpers';
 
 export const ReportItem = () => {
   const { reportForm, setReportForm, handleReportSubmit, reportError, isLoading, navigateTo } = useAppContext();
@@ -66,9 +66,26 @@ export const ReportItem = () => {
   };
 
 
+  // Validate a single field (used on blur/change) so the user gets feedback
+  // field-by-field as they fill the form, not only when they hit Submit.
+  const validateField = (field) => {
+    const all = validate();
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (all[field]) next[field] = all[field];
+      else delete next[field];
+      return next;
+    });
+  };
+
   const onSubmit = (evt) => {
     evt.preventDefault();
     const e = validate();
+    // Also block on the live AI checks (title↔category match / gibberish) — these
+    // need the AI models, so they run on the server as you type and surface here
+    // via the inline chip. Merge them so submit is blocked before the round-trip.
+    if (aiStatus.title?.state === 'error' && !e.title) e.title = aiStatus.title.message || 'Please review the item title.';
+    if (aiStatus.description?.state === 'error' && !e.description) e.description = aiStatus.description.message || 'Please review the description.';
     setErrors(e);
     if (Object.keys(e).length > 0) {
       // Bring the first error into view.
@@ -119,7 +136,8 @@ export const ReportItem = () => {
                </label>
                <input type="text" className="form-input" style={invalid('title')} placeholder="e.g. Black Wallet" maxLength={100}
                  value={reportForm.title}
-                 onChange={e => { update({ title: e.target.value }, 'title'); runAiCheck('title', e.target.value, reportForm.category); }} />
+                 onChange={e => { update({ title: e.target.value }, 'title'); runAiCheck('title', e.target.value, reportForm.category); }}
+                 onBlur={() => validateField('title')} />
                {errText('title')}
             </div>
 
@@ -128,7 +146,12 @@ export const ReportItem = () => {
                <div style={invalid('category') ? { border: '1px solid var(--error, #DC2626)', borderRadius: 8 } : undefined}>
                  <CustomSelect
                    value={reportForm.category}
-                   onChange={(val) => update({ category: val }, 'category')}
+                   onChange={(val) => {
+                     update({ category: val }, 'category');
+                     // Re-run the title↔category AI match against the new category.
+                     if ((reportForm.title || '').trim().length >= 3) runAiCheck('title', reportForm.title, val);
+                     if ((reportForm.description || '').trim().length >= 30) runAiCheck('description', reportForm.description, val);
+                   }}
                    options={CATEGORY_OPTIONS}
                    placeholder="Select Category..."
                  />
@@ -251,8 +274,20 @@ export const ReportItem = () => {
                    type="date"
                    className="form-input date-time-input"
                    style={invalid('date')}
+                   max={todayStr()}
                    value={reportForm.date || ''}
-                   onChange={e => update({ date: e.target.value }, 'date')}
+                   onChange={e => {
+                     const val = e.target.value;
+                     update({ date: val }, 'date');
+                     // Instant future-date feedback (no submit needed).
+                     setErrors((prev) => {
+                       const next = { ...prev };
+                       if (val && val > todayStr()) next.date = 'The date cannot be in the future.';
+                       else if (isFound && !val) next.date = 'Date is required for found items.';
+                       else delete next.date;
+                       return next;
+                     });
+                   }}
                  />
                  {errText('date')}
               </div>
@@ -317,7 +352,7 @@ export const ReportItem = () => {
                           runAiCheck('description', val, reportForm.category);
                       }
                   }}
-                  onBlur={e => update({ description: e.target.value.trim() })}
+                  onBlur={e => { update({ description: e.target.value.trim() }); validateField('description'); }}
                   maxLength={5000}
                   aria-label="Item description"
                />

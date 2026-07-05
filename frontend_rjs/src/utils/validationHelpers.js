@@ -13,6 +13,15 @@ export function debounce(fn, ms = 500) {
   return wrapped;
 }
 
+// ── Today's local date as YYYY-MM-DD (for "date not in the future" checks) ──
+export function todayStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // ── Character counts ────────────────────────────────────────────────────────
 export function charCount(value, min, max) {
   const len = (value || '').trim().length;
