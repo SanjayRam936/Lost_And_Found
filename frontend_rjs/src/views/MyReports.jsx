@@ -4,7 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { getCategoryIcon, getStatusBadge } from '../utils/helpers';
 
 export const MyReports = () => {
-  const { activeFilter, setActiveFilter, filteredReports, reports, handleEditReport, handleDeleteReport, navigateTo, openFinderClaim, openOwnerReward, openFinderReward, openImage, fetchReports } = useAppContext();
+  const { activeFilter, setActiveFilter, filteredReports, reports, handleEditReport, handleDeleteReport, navigateTo, openFinderClaim, openOwnerReward, openFinderReward, openImage, fetchReports, openOwnerCollection } = useAppContext();
 
   // Refetch every time this screen opens so statuses (e.g. a handover the finder
   // completed on their own device) are always current — no stale "Review Match".
@@ -112,6 +112,11 @@ export const MyReports = () => {
                  {/* Lost owner: handover done, finder opted in for a reward -> pay it */}
                  {r.type === 'lost' && r.status === 'reward-due' && (
                     <button className="btn-card-action btn-purple-solid" onClick={(e) => { e.stopPropagation(); openOwnerReward(r); }}>Pay Reward</button>
+                 )}
+
+                 {/* Lost owner: item dropped at a police station / institution -> re-view the collection point anytime */}
+                 {r.type === 'lost' && r.claim?.status === 'HANDED_OVER' && (
+                    <button className="btn-card-action btn-green-solid" onClick={(e) => { e.stopPropagation(); openOwnerCollection(r); }}>View Collection Point</button>
                  )}
 
                  {/* Finder: owner started a handover -> enter the OTP for this item */}

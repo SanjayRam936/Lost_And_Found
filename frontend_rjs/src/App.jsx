@@ -24,6 +24,7 @@ import { ClaimPoliceStationOwner } from './views/ClaimPoliceStationOwner';
 import { ClaimCustomLocationFinder } from './views/ClaimCustomLocationFinder';
 import { ClaimCustomLocationOwner } from './views/ClaimCustomLocationOwner';
 import { ClaimSuccess } from './views/ClaimSuccess';
+import { ClaimCollection } from './views/ClaimCollection';
 import { FinderReward } from './views/FinderReward';
 import { RewardPayment } from './views/RewardPayment';
 import { LinkBank } from './views/LinkBank';
@@ -77,6 +78,7 @@ const ViewRouter = () => {
     case 'claim-custom-location-finder': return <ClaimCustomLocationFinder />;
     case 'claim-custom-location-owner': return <ClaimCustomLocationOwner />;
     case 'claim-success': return <ClaimSuccess />;
+    case 'claim-collection': return <ClaimCollection />;
     case 'rewards': return <Rewards />;
     case 'reward-payment': return <RewardPayment />;
     case 'finder-reward': return <FinderReward />;

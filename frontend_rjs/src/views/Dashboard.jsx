@@ -38,14 +38,14 @@ export const Dashboard = () => {
          </div>
 
          <div className="dash-stats-grid">
-            <div className="stat-card" onClick={() => navigateTo('my-reports')}>
+            <div className="stat-card stat-reports" onClick={() => navigateTo('my-reports')}>
               <div className="stat-card-top">
                 <span className="stat-card-icon stat-icon-neutral"><FileText size={18} /></span>
                 <span className="stat-card-label">Your Reports</span>
               </div>
-              <div className="stat-card-value">{reports.length}</div>
+              <div className="stat-card-value val-green">{reports.length}</div>
             </div>
-            <div className="stat-card" onClick={() => navigateTo('my-reports')}>
+            <div className="stat-card stat-matches" onClick={() => navigateTo('my-reports')}>
               <div className="stat-card-top">
                 <span className="stat-card-icon stat-icon-purple"><Sparkles size={18} /></span>
                 <span className="stat-card-label">AI Matches</span>

@@ -487,6 +487,15 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Owner re-opens the collection point (police station / institution) for a
+  // handed-over item — reachable any time from My Reports.
+  const openOwnerCollection = (report) => {
+    if (!report?.pk) return;
+    setClaimError('');
+    navigateTo('claim-collection');
+    loadMatchForLost(report.pk);
+  };
+
   const handleRegenerateOtp = async () => {
     if (!currentClaim) return;
     try {
@@ -634,7 +643,7 @@ export const AppProvider = ({ children }) => {
       claimRole, setClaimRole, generatedOtp, setGeneratedOtp, handoverMethod, setHandoverMethod,
       policeStationDetails, setPoliceStationDetails, customLocation, setCustomLocation,
       currentMatch, currentClaim, matchLoading, claimError,
-      loadMatchForLost, handleInitiateClaim, handleVerifyOwnership, openOwnerHandover, handleRegenerateOtp, handleVerifyOtp, handleDismissMatch, openFinderClaim, openOwnerReward, openFinderReward
+      loadMatchForLost, handleInitiateClaim, handleVerifyOwnership, openOwnerHandover, openOwnerCollection, handleRegenerateOtp, handleVerifyOtp, handleDismissMatch, openFinderClaim, openOwnerReward, openFinderReward
     }}>
       {children}
     </AppContext.Provider>
