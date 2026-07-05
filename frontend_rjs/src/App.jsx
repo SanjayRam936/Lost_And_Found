@@ -32,8 +32,11 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { ImageLightbox } from './components/ImageLightbox';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
+// Pages a logged-out visitor is allowed to see. Everything else requires auth.
+const PUBLIC_VIEWS = ['home', 'login', 'register', 'admin-login'];
+
 const ViewRouter = () => {
-  const { currentView, isLoading, bootstrapping } = useAppContext();
+  const { currentView, isLoading, bootstrapping, isLoggedIn } = useAppContext();
 
   // While the initial session check runs, show the loader instead of flashing
   // the public landing page (which looked like being logged out on refresh).
@@ -44,6 +47,12 @@ const ViewRouter = () => {
       <div className="loading-text">LostFound.ai</div>
     </div>
   );
+
+  // Auth guard: a logged-out user cannot reach any protected page (e.g. Report)
+  // no matter how they navigate there — they get the login screen instead.
+  if (!isLoggedIn && !PUBLIC_VIEWS.includes(currentView)) {
+    return <Login />;
+  }
 
   switch(currentView) {
     case 'home': return <Home />;

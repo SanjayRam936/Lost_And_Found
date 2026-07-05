@@ -3,7 +3,7 @@ import { ShieldCheck, Mail, ArrowRight } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 export const Footer = () => {
-  const { navigateTo } = useAppContext();
+  const { navigateTo, isLoggedIn } = useAppContext();
 
   return (
     <footer className="page-footer">
@@ -21,8 +21,8 @@ export const Footer = () => {
             <h4 className="footer-heading">Platform</h4>
             <ul className="footer-links">
               <li onClick={() => navigateTo('home')}>Home</li>
-              <li onClick={() => navigateTo('report')}>Report Item</li>
-              <li onClick={() => navigateTo('login')}>Sign In</li>
+              <li onClick={() => navigateTo(isLoggedIn ? 'report' : 'login')}>Report Item</li>
+              <li onClick={() => navigateTo(isLoggedIn ? 'account-settings' : 'login')}>{isLoggedIn ? 'My Account' : 'Sign In'}</li>
             </ul>
           </div>
           <div className="footer-column">
