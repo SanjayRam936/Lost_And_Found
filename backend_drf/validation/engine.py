@@ -42,16 +42,26 @@ def _validate_dates(date, time):
     # naive HH:MM with no timezone, while the server runs in UTC — comparing the
     # two wrongly flags valid local times (e.g. IST is +5:30 ahead of UTC) as
     # being in the future. The date check below is unambiguous and enough.
+    import calendar
+    import datetime
     from django.utils import timezone
     errors = {}
     if date:
         # localdate() now returns the IST date (TIME_ZONE=Asia/Kolkata), so it
         # matches the user's own "today" — no timezone grace needed.
         today = timezone.localdate()
+        # Earliest allowed date: 6 calendar months before today.
+        month = today.month - 6
+        year = today.year
+        if month <= 0:
+            month += 12
+            year -= 1
+        day = min(today.day, calendar.monthrange(year, month)[1])
+        earliest = datetime.date(year, month, day)
         if date > today:
             errors['date'] = 'Future dates are not allowed.'
-        elif (today - date).days > 365:
-            errors['date'] = 'The date cannot be older than one year.'
+        elif date < earliest:
+            errors['date'] = 'The date must be within the last 6 months.'
     return errors
 
 

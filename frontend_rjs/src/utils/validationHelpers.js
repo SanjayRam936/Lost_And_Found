@@ -14,12 +14,22 @@ export function debounce(fn, ms = 500) {
 }
 
 // ── Today's local date as YYYY-MM-DD (for "date not in the future" checks) ──
-export function todayStr() {
-  const d = new Date();
+function ymd(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+export function todayStr() {
+  return ymd(new Date());
+}
+
+// Earliest allowed report date — 6 months before today.
+export function sixMonthsAgoStr() {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 6);
+  return ymd(d);
 }
 
 // ── Character counts ────────────────────────────────────────────────────────

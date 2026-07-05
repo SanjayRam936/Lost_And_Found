@@ -4,7 +4,7 @@
 //     against POST /api/v1/validation/check-field/
 import { useState, useRef, useCallback } from 'react';
 import { checkField as apiCheckField } from '../api/validation';
-import { charCount, looksLikeMash, isValidImei, todayStr } from '../utils/validationHelpers';
+import { charCount, looksLikeMash, isValidImei, todayStr, sixMonthsAgoStr } from '../utils/validationHelpers';
 
 export function useFormValidation() {
   // aiStatus[field] = { state: 'idle'|'checking'|'ok'|'warn'|'error', message }
@@ -52,9 +52,11 @@ export function useFormValidation() {
     else if (d.tooLong) errors.description = 'Description must not exceed 5000 characters.';
     else if (looksLikeMash(form.description)) errors.description = 'Your description appears to contain random or meaningless text.';
 
-    // Date must not be in the future (applies to both lost & found).
+    // Date must be within the last 6 months and not in the future (both types).
     if (form.date && form.date > todayStr()) {
       errors.date = 'The date cannot be in the future.';
+    } else if (form.date && form.date < sixMonthsAgoStr()) {
+      errors.date = 'The date must be within the last 6 months.';
     }
 
     if (isFound) {

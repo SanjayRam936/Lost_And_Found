@@ -6,7 +6,7 @@ import { MapPicker } from '../components/MapPicker';
 import { RouteLocationInput } from '../components/RouteLocationInput';
 import { CATEGORY_OPTIONS, COLOR_OPTIONS } from '../utils/helpers';
 import { useFormValidation } from '../hooks/useFormValidation';
-import { charCount, brandSuggestionsFor, uniqueIdFieldsFor, todayStr } from '../utils/validationHelpers';
+import { charCount, brandSuggestionsFor, uniqueIdFieldsFor, todayStr, sixMonthsAgoStr } from '../utils/validationHelpers';
 
 export const ReportItem = () => {
   const { reportForm, setReportForm, handleReportSubmit, reportError, isLoading, navigateTo } = useAppContext();
@@ -274,15 +274,17 @@ export const ReportItem = () => {
                    type="date"
                    className="form-input date-time-input"
                    style={invalid('date')}
+                   min={sixMonthsAgoStr()}
                    max={todayStr()}
                    value={reportForm.date || ''}
                    onChange={e => {
                      const val = e.target.value;
                      update({ date: val }, 'date');
-                     // Instant future-date feedback (no submit needed).
+                     // Instant date-range feedback (no submit needed).
                      setErrors((prev) => {
                        const next = { ...prev };
                        if (val && val > todayStr()) next.date = 'The date cannot be in the future.';
+                       else if (val && val < sixMonthsAgoStr()) next.date = 'The date must be within the last 6 months.';
                        else if (isFound && !val) next.date = 'Date is required for found items.';
                        else delete next.date;
                        return next;
