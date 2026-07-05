@@ -65,17 +65,6 @@ export const ReportItem = () => {
     return e;
   };
 
-  // Submit is enabled only once the minimum required fields are present.
-  const requiredFilled = (() => {
-    const base = charCount(reportForm.title, 3, 100).ok
-      && !!reportForm.category
-      && charCount(reportForm.description, 30, 5000).ok
-      && (isRoute ? (reportForm.sourceLat != null && reportForm.destLat != null)
-                  : !!(reportForm.location && reportForm.location.trim()));
-    if (!isFound) return base;
-    return base && !!reportForm.date && !!reportForm.time
-      && (reportForm.image instanceof File || isEditing);
-  })();
 
   const onSubmit = (evt) => {
     evt.preventDefault();
@@ -408,8 +397,7 @@ export const ReportItem = () => {
               <div className="error-text" style={{ marginBottom: '1rem' }}>Please fix the highlighted fields above.</div>
             )}
             {reportError && <div className="error-text" style={{ marginBottom: '1rem' }}>{reportError}</div>}
-            <button type="submit" className="btn-submit" disabled={isLoading || !requiredFilled}
-              style={!requiredFilled && !isLoading ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}>
+            <button type="submit" className="btn-submit" disabled={isLoading}>
               {isLoading ? 'Submitting…' : 'Submit Report'}
             </button>
             <button type="button" className="btn-cancel" onClick={() => navigateTo('dashboard')}>Cancel</button>
