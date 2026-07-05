@@ -2,21 +2,24 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
   :root {
-    /* Bright green + black theme (Deloitte-poster inspired). */
-    --primary: #2FA84F;              /* vibrant green — primary actions / brand */
-    --primary-hover: #218838;
-    --primary-light: #E5F7EA;        /* soft green tint for badges / card fills */
-    --primary-border: #2FA84F;
-    --primary-gradient: linear-gradient(135deg, #4FC96C 0%, #2FA84F 100%);
-    --purple: #147A38;               /* AI-match accent — deep green (was blue-purple) */
-    --purple-light: #E5F7EA;
+    /* Realtime Colors palette — lime-green primary, violet secondary, near-black
+       text on a light-pink background. */
+    --primary: #57E016;              /* PRIMARY — bright lime green (fills) */
+    --primary-hover: #49C010;
+    --primary-light: #EAFBDE;        /* soft green tint for badges / card fills */
+    --primary-border: #57E016;
+    --primary-gradient: linear-gradient(135deg, #6DEB30 0%, #57E016 100%);
+    --on-primary: #0A0A12;           /* DARK text on the bright-green buttons */
+    --purple: #5B21E8;               /* SECONDARY — violet (AI-match accents; white text) */
+    --purple-light: #ECE6FD;
+    --accent: #6BEA2E;               /* ACCENT — a brighter green */
     --error: #C52222;
-    --bg-main: #FFFFFF;
-    --bg-alt: #F3F6F2;               /* very light green-grey app background */
-    --text-dark: #0F1115;            /* near-black headings/text */
+    --bg-main: #FFFFFF;              /* cards / navbar */
+    --bg-alt: #FFFFFF;              /* pure-white app background */
+    --text-dark: #06060F;            /* near-black headings/text */
     --text-gray: #4B5563;
     --text-light: #6B7280;
-    --border-light: #E5E7EB;
+    --border-light: #E7E2E5;
     --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     --mockup-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
   }
@@ -44,7 +47,7 @@
   .nav-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; text-decoration: none; }
   .brand-text { color: var(--primary); font-weight: 700; font-size: 1.1rem; letter-spacing: -0.01em; }
   
-  .btn-nav-register { background-color: var(--primary); color: white; border: none; padding: 6px 16px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: background-color 0.2s; }
+  .btn-nav-register { background-color: var(--primary); color: var(--on-primary); border: none; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: background-color 0.2s; }
   .btn-nav-register:hover { background-color: var(--primary-hover); }
 
   .icon-badge {
@@ -77,7 +80,7 @@
   .hero-buttons { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 3rem; }
   
   .btn-primary, .btn-secondary { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; width: 100%; }
-  .btn-primary { background: var(--primary-gradient); color: white; border: none; }
+  .btn-primary { background: var(--primary-gradient); color: var(--on-primary); border: none; font-weight: 700; }
   .btn-primary:hover { filter: brightness(0.97); }
   .btn-secondary { background-color: white; color: var(--primary); border: 1px solid var(--primary-border); }
   .btn-secondary:hover { background-color: var(--primary-light); }
@@ -149,7 +152,7 @@
   .input-wrapper.has-error .input-icon-left { color: var(--error); }
   .error-message { color: var(--error); font-size: 0.75rem; font-weight: 500; margin-top: 0.5rem; display: block; }
   
-  .btn-submit { width: 100%; background: var(--primary-gradient); color: #ffffff; font-weight: 700; font-size: 0.95rem; padding: 0.875rem; border: none; border-radius: 10px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 0.5rem; transition: filter 0.2s, box-shadow 0.2s; margin-top: 1.5rem; box-shadow: 0 6px 16px rgba(47, 168, 79, 0.28); }
+  .btn-submit { width: 100%; background: var(--primary-gradient); color: var(--on-primary); font-weight: 700; font-size: 0.95rem; padding: 0.875rem; border: none; border-radius: 10px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 0.5rem; transition: filter 0.2s, box-shadow 0.2s; margin-top: 1.5rem; box-shadow: 0 6px 16px rgba(47, 168, 79, 0.28); }
   .btn-submit:hover { filter: brightness(0.97); box-shadow: 0 8px 20px rgba(47, 168, 79, 0.34); }
   .btn-submit:disabled { filter: grayscale(0.4) opacity(0.7); box-shadow: none; cursor: default; }
 
@@ -390,7 +393,7 @@
   .btn-card-action:hover { opacity: 0.9; }
   .btn-purple-solid { background-color: var(--purple); color: white; }
   .btn-green-outline { background-color: var(--bg-alt); color: var(--primary); border: 1px solid #E5E7EB; }
-  .btn-green-solid { background-color: var(--primary); color: white; }
+  .btn-green-solid { background-color: var(--primary); color: var(--on-primary); font-weight: 700; }
 
   /* --- PROFILE SETTINGS STYLES --- */
   .profile-header-card { background: white; border: 1px solid var(--border-light); border-radius: 12px; overflow: hidden; text-align: center; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
