@@ -4,15 +4,15 @@
   :root {
     /* Realtime Colors palette — lime-green primary, violet secondary, near-black
        text on a light-pink background. */
-    --primary: #57E016;              /* PRIMARY — bright lime green (fills) */
-    --primary-hover: #49C010;
-    --primary-light: #EAFBDE;        /* soft green tint for badges / card fills */
-    --primary-border: #57E016;
-    --primary-gradient: linear-gradient(135deg, #6DEB30 0%, #57E016 100%);
-    --on-primary: #0A0A12;           /* DARK text on the bright-green buttons */
+    --primary: #17A94C;              /* PRIMARY — balanced emerald green (fills) */
+    --primary-hover: #128A3D;
+    --primary-light: #E4F6EA;        /* soft green tint for badges / card fills */
+    --primary-border: #17A94C;
+    --primary-gradient: linear-gradient(135deg, #2FBF57 0%, #16A34A 100%);
+    --on-primary: #FFFFFF;           /* white text on the green buttons */
     --purple: #5B21E8;               /* SECONDARY — violet (AI-match accents; white text) */
     --purple-light: #ECE6FD;
-    --accent: #6BEA2E;               /* ACCENT — a brighter green */
+    --accent: #34D06A;               /* ACCENT — a brighter green */
     --error: #C52222;
     --bg-main: #FFFFFF;              /* cards / navbar */
     --bg-alt: #FFFFFF;              /* pure-white app background */
@@ -285,13 +285,13 @@
   .action-btn-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   /* Solid colored action buttons: red = Lost, green = Found. */
   .action-btn-lost { background: linear-gradient(135deg, #2A2A2A, #0A0A0A); border-color: #0A0A0A; box-shadow: 0 6px 16px -8px rgba(0,0,0,0.55); }
-  .action-btn-found { background: linear-gradient(135deg, var(--accent), var(--primary)); border-color: var(--primary); box-shadow: 0 6px 16px -8px rgba(87,224,22,0.55); }
+  .action-btn-found { background: linear-gradient(135deg, var(--accent), var(--primary)); border-color: var(--primary); box-shadow: 0 6px 16px -8px rgba(23,169,76,0.5); }
   .action-btn-lost .action-btn-icon { background: rgba(255,255,255,0.22); color: #ffffff; }
-  .action-btn-found .action-btn-icon { background: rgba(0,0,0,0.12); color: var(--on-primary); }
+  .action-btn-found .action-btn-icon { background: rgba(255,255,255,0.22); color: var(--on-primary); }
   .action-btn-lost .action-btn-title { color: #ffffff; }
   .action-btn-lost .action-btn-sub { color: rgba(255,255,255,0.85); }
   .action-btn-found .action-btn-title { color: var(--on-primary); }
-  .action-btn-found .action-btn-sub { color: rgba(0,0,0,0.7); }
+  .action-btn-found .action-btn-sub { color: rgba(255,255,255,0.85); }
   .action-btn-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
   .action-btn-title { font-size: 0.97rem; font-weight: 700; color: var(--text-dark); letter-spacing: -0.01em; }
   .action-btn-sub { font-size: 0.76rem; color: var(--text-gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -305,7 +305,7 @@
   .stat-card { background: #ffffff; border: 1px solid var(--border-light); border-radius: 14px; padding: 1.15rem 1.1rem; cursor: pointer; box-shadow: 0 1px 2px rgba(16,24,40,0.05); transition: transform 0.16s ease, box-shadow 0.16s ease; text-align: center; }
   .stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 22px -12px rgba(16,24,40,0.2); }
   /* Themed tints: green for Your Reports, violet for AI Matches. */
-  .stat-card.stat-reports { background: linear-gradient(180deg, #F5FEEE, #ffffff); border-color: #CFF3B6; }
+  .stat-card.stat-reports { background: linear-gradient(180deg, #EFFBF3, #ffffff); border-color: #BEE9CC; }
   .stat-card.stat-matches { background: linear-gradient(180deg, #F6F2FE, #ffffff); border-color: #D9CCFB; }
   .stat-card-top { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 0.7rem; }
   .stat-card-icon { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
