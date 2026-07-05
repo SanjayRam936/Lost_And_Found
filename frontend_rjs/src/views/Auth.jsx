@@ -217,18 +217,6 @@ export const Register = () => {
           <h1>Create Account</h1>
           <p>Join the community</p>
         </div>
-        <div className="type-selector">
-          <div className={`type-card ${regType === 'lost' ? 'active' : ''}`} onClick={() => setRegType('lost')}>
-            <Search className="type-card-icon" size={24} />
-            <div className="type-card-text">Lost Item</div>
-            {regType === 'lost' && <CheckCircle className="type-card-check" size={16} />}
-          </div>
-          <div className={`type-card ${regType === 'found' ? 'active' : ''}`} onClick={() => setRegType('found')}>
-            <PlusCircle className="type-card-icon" size={24} />
-            <div className="type-card-text">Found Item</div>
-            {regType === 'found' && <CheckCircle className="type-card-check" size={16} />}
-          </div>
-        </div>
         <form onSubmit={handleSubmit}>
           <div className="form-group" style={{ marginBottom: errors.name ? '1.5rem' : '1rem' }}>
              <div className={`input-wrapper ${errors.name ? 'error-border' : ''}`}>
