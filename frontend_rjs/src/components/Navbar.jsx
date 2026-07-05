@@ -1,16 +1,27 @@
 import React from 'react';
-import { Bell, User, LogOut } from 'lucide-react';
+import { Bell, User, LogOut, ArrowLeft } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { ShieldLogo } from './ShieldLogo';
 
+// Views that are a natural "home" — no back button needed on these.
+const ROOT_VIEWS = ['home', 'dashboard', 'login', 'register', 'admin-login', 'admin-dashboard'];
+
 export const Navbar = () => {
-  const { isLoggedIn, navigateTo, handleLogout, unreadNotificationsCount } = useAppContext();
+  const { isLoggedIn, navigateTo, handleLogout, unreadNotificationsCount, currentView, goBack } = useAppContext();
+  const showBack = !ROOT_VIEWS.includes(currentView);
 
   return (
     <nav className="navbar">
-      <div className="nav-brand" onClick={() => navigateTo(isLoggedIn ? 'dashboard' : 'home')}>
-        <ShieldLogo />
-        <span className="brand-text">Lost&Found</span>
+      <div className="nav-left">
+        {showBack && (
+          <button className="btn-nav-back" onClick={goBack} aria-label="Go back" title="Back">
+            <ArrowLeft size={22} />
+          </button>
+        )}
+        <div className="nav-brand" onClick={() => navigateTo(isLoggedIn ? 'dashboard' : 'home')}>
+          <ShieldLogo />
+          <span className="brand-text">Lost&Found</span>
+        </div>
       </div>
       {isLoggedIn ? (
         <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>

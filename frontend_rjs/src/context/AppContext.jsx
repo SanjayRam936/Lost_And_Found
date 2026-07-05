@@ -14,6 +14,17 @@ export const AppProvider = ({ children }) => {
   // State Management
   const [currentView, setCurrentView] = useState('home');
   const [currentParams, setCurrentParams] = useState({});
+
+  // ── In-app back navigation ────────────────────────────────────────────────
+  // The app uses view-state routing (no URL router), so the browser/mobile back
+  // gesture would otherwise exit the app entirely. We keep an internal stack of
+  // visited views and arm a browser history entry so the back gesture/button is
+  // captured and translated into an in-app "go back".
+  const historyRef = useRef([]);          // stack of previous { view, params }
+  const isBackRef = useRef(false);         // true while applying a back navigation (skip recording)
+  const prevViewRef = useRef('home');
+  const prevParamsRef = useRef({});
+  const goBackRef = useRef(() => {});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -241,6 +252,46 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Record every view transition (whether from navigateTo or a direct
+  // setCurrentView) so "back" always has somewhere to return to.
+  useEffect(() => {
+    if (isBackRef.current) {
+      isBackRef.current = false;           // this change WAS a back-nav — don't record it
+    } else if (currentView !== prevViewRef.current) {
+      historyRef.current.push({ view: prevViewRef.current, params: prevParamsRef.current });
+      if (historyRef.current.length > 50) historyRef.current.shift();
+    }
+    prevViewRef.current = currentView;
+    prevParamsRef.current = currentParams;
+  }, [currentView, currentParams]);
+
+  const goBack = () => {
+    const prev = historyRef.current.pop();
+    isBackRef.current = true;
+    if (prev) {
+      setCurrentView(prev.view);
+      setCurrentParams(prev.params || {});
+    } else {
+      // At the app root: land somewhere safe instead of leaving the app.
+      setCurrentView(isLoggedIn ? 'dashboard' : 'home');
+      setCurrentParams({});
+    }
+    window.scrollTo(0, 0);
+  };
+  goBackRef.current = goBack;               // keep the popstate handler pointing at fresh state
+
+  // Capture the browser back button + mobile swipe-back gesture and turn it into
+  // an in-app back instead of leaving the app.
+  useEffect(() => {
+    window.history.pushState({ app: true }, '');    // arm one entry to intercept the first back
+    const onPop = () => {
+      goBackRef.current();
+      window.history.pushState({ app: true }, '');   // re-arm so back keeps being captured
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   // Apply an authenticated user to app state and route to the right home view.
   const applyAuthenticatedUser = (u, { redirect = true } = {}) => {
     setUser(u);
@@ -250,6 +301,8 @@ export const AppProvider = ({ children }) => {
     fetchReports();
     fetchNotifications();
     if (redirect) {
+      historyRef.current = [];              // fresh back-stack after login
+      isBackRef.current = true;             // don't record the login->dashboard hop
       setCurrentView(staff ? 'admin-dashboard' : 'dashboard');
       window.scrollTo(0, 0);
     }
@@ -333,6 +386,8 @@ export const AppProvider = ({ children }) => {
       await authApi.logout();
     } finally {
       clearSession();
+      historyRef.current = [];              // clear back-stack on logout
+      isBackRef.current = true;             // don't record the logout hop
       setCurrentView('home');
       window.scrollTo(0, 0);
       setIsLoading(false);
@@ -609,7 +664,7 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppContext.Provider value={{
-      currentView, setCurrentView, currentParams, setCurrentParams, navigateTo,
+      currentView, setCurrentView, currentParams, setCurrentParams, navigateTo, goBack,
       isLoggedIn, setIsLoggedIn, handleLoginSubmit, handleLogout,
       isAdmin, setIsAdmin, handleAdminLoginSubmit, handleRegisterSubmit,
       isLoading, setIsLoading,

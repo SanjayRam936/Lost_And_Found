@@ -46,6 +46,9 @@
     color: #E5E7EB;                 /* light default text on the black bar */
     --text-gray: #CBD5E1;           /* rescope so the icons' var(--text-gray) reads light */
   }
+  .nav-left { display: flex; align-items: center; gap: 6px; }
+  .btn-nav-back { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 10px; border: none; background: transparent; color: #E5E7EB; cursor: pointer; flex-shrink: 0; transition: background-color 0.2s, color 0.2s; }
+  .btn-nav-back:hover { background-color: rgba(255,255,255,0.12); color: var(--primary); }
   .nav-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; text-decoration: none; }
   .brand-text { color: var(--primary); font-weight: 700; font-size: 1.1rem; letter-spacing: -0.01em; }
   

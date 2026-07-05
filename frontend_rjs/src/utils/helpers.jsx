@@ -22,7 +22,6 @@ export const CATEGORIES = [
   'Camera',
   'Books & Stationery',
   'Pet',
-  'Other',
 ];
 
 export const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({ value: c, label: c }));
@@ -31,7 +30,7 @@ export const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({ value: c, label: c }));
 // engine's exact-color check works across lost/found reports).
 export const COLORS = [
   'Black', 'White', 'Silver', 'Grey', 'Blue', 'Red', 'Green', 'Yellow',
-  'Orange', 'Brown', 'Pink', 'Purple', 'Gold', 'Multicolor', 'Other',
+  'Orange', 'Brown', 'Pink', 'Purple', 'Gold', 'Multicolor',
 ];
 export const COLOR_OPTIONS = COLORS.map((c) => ({ value: c, label: c }));
 
