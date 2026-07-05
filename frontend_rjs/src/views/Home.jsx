@@ -9,28 +9,28 @@ export const Home = () => {
     <>
     <div className="section-container">
       <div className="hero-section">
-         <div className="hero-badge"><Sparkles size={14} className="text-green" /> AI-Powered Matching</div>
-         <h1 className="hero-title">Find what's lost, <br/><span className="text-green">return what's found.</span></h1>
-         <p className="hero-desc">The smartest campus lost and found platform. We use AI to match items instantly.</p>
-         <div className="hero-buttons">
+         <div className="hero-badge reveal reveal-1"><Sparkles size={14} className="text-green" /> AI-Powered Matching</div>
+         <h1 className="hero-title reveal reveal-2">Find what's lost, <br/><span className="text-green">return what's found.</span></h1>
+         <p className="hero-desc reveal reveal-3">The smartest campus lost and found platform. We use AI to match items instantly.</p>
+         <div className="hero-buttons reveal reveal-4">
            <button className="btn-primary" onClick={() => navigateTo('login', null, { regType: 'lost' })}><Search size={18}/> I Lost Something</button>
            <button className="btn-secondary" onClick={() => navigateTo('login', null, { regType: 'found' })}><PlusCircle size={18}/> I Found Something</button>
          </div>
       </div>
 
       <div className="features-row">
-        <div className="feature-item">
+        <div className="feature-item reveal reveal-5">
           <div className="feature-icon-wrapper icon-green"><ImagePlus size={20} /></div>
           <div className="feature-title">Smart Image AI</div>
           <div className="feature-desc">Upload a photo, we auto-tag and match it.</div>
         </div>
-        <div className="feature-item">
+        <div className="feature-item reveal reveal-6">
           <div className="feature-icon-wrapper icon-purple"><ShieldCheck size={20} /></div>
           <div className="feature-title">Vivar Adar Protocol</div>
           <div className="feature-desc">Secure verification before handovers.</div>
         </div>
       </div>
-      <div className="steps-section">
+      <div className="steps-section reveal reveal-7">
          <h2 className="section-title"><ShieldCheck size={20} style={{display:'inline', verticalAlign: 'middle', marginRight: 8, color: 'var(--primary)'}}/>Secure Verification</h2>
          <p className="section-desc" style={{marginBottom: '0.5rem', fontWeight: 700, color: 'var(--text-dark)'}}>A systematic approach to recovery</p>
          <p className="section-desc">Our methodical process ensures that your items are matched accurately while maintaining complete privacy until verification is confirmed.</p>
@@ -64,7 +64,7 @@ export const Home = () => {
       </div>
     </div>
     
-    <div className="privacy-section">
+    <div className="privacy-section reveal reveal-8">
       <div className="privacy-graphic">
         <div className="circle-outer">
           <div className="circle-inner">
