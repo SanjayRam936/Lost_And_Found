@@ -679,6 +679,37 @@
   .admin-tbl tbody tr { transition: background-color .15s; }
   .admin-tbl tbody tr:hover { background: var(--primary-light); }
   .admin-tbl-empty { padding: 2.5rem; text-align: center; color: var(--text-gray); }
+
+  /* Overview board — colorful card columns */
+  .admin-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+  .admin-col2 { background: white; border: 1px solid var(--border-light); border-radius: 16px; box-shadow: 0 2px 8px -3px rgba(16,24,40,.1); display: flex; flex-direction: column; overflow: hidden; }
+  .admin-col2-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border-light); }
+  .admin-col2-head .c-ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: 0 0 auto; }
+  .admin-col2-head h4 { margin: 0; font-size: 0.95rem; font-weight: 800; flex: 1; letter-spacing: -.01em; color: var(--text-dark); }
+  .admin-col2-head .c-count { background: var(--bg-alt); border: 1px solid var(--border-light); color: var(--text-gray); font-weight: 800; font-size: 0.74rem; min-width: 24px; height: 22px; padding: 0 7px; border-radius: 11px; display: grid; place-items: center; }
+  .admin-col2-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; max-height: 470px; overflow-y: auto; }
+  .admin-icard { position: relative; border: 1px solid var(--border-light); border-radius: 11px; background: var(--bg-alt); padding: 11px 13px 11px 15px; overflow: hidden; transition: transform .14s ease, box-shadow .14s ease, border-color .14s; }
+  .admin-icard:hover { transform: translateY(-2px); box-shadow: 0 12px 22px -12px rgba(16,24,40,.2); border-color: color-mix(in srgb, var(--primary) 40%, var(--border-light)); }
+  .admin-icard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--st, #94A3B8); }
+  .admin-icard-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+  .admin-icard-id { font-size: 0.72rem; font-weight: 800; color: var(--text-gray); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+  .admin-icard-title { font-size: 0.92rem; font-weight: 700; color: var(--text-dark); letter-spacing: -.01em; margin-bottom: 3px; }
+  .admin-icard-meta { font-size: 0.75rem; color: var(--text-gray); line-height: 1.45; }
+  .admin-icard-meta b { color: var(--text-dark); font-weight: 600; }
+  .admin-icard-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+  .admin-conf { font-size: 0.74rem; font-weight: 800; color: var(--primary-hover); font-variant-numeric: tabular-nums; }
+
+  /* Recent users grid */
+  .admin-users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 10px; padding: 12px; }
+  .admin-user { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border: 1px solid var(--border-light); border-radius: 11px; background: var(--bg-alt); transition: transform .14s, box-shadow .14s; }
+  .admin-user:hover { transform: translateY(-2px); box-shadow: 0 12px 22px -12px rgba(16,24,40,.2); }
+  .admin-user-av { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; flex: 0 0 auto; font-size: 0.9rem; }
+  .admin-user-info { min-width: 0; flex: 1; }
+  .admin-user-name { font-size: 0.88rem; font-weight: 700; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .admin-user-email { font-size: 0.72rem; color: var(--text-gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .admin-user-stats { font-size: 0.7rem; color: var(--text-light); margin-top: 2px; font-weight: 600; }
+  @media (max-width: 1024px) { .admin-board { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 760px) { .admin-board { grid-template-columns: 1fr; } }
   .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
 
   /* --- RESPONSIVE DESIGN --- */

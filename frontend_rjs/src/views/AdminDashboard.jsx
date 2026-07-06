@@ -60,6 +60,30 @@ const STAT_TONES = {
   dark: { bg: '#E5E7EB', fg: '#0A0A0A' },
 };
 
+// Solid colour per status tone — used for each card's left severity stripe.
+const TONE_HEX = { gray: '#64748B', green: '#0F7A38', orange: '#B45309', purple: '#5B21E8', blue: '#1D66C9' };
+
+// Deterministic avatar colour + initials for the Recent Users panel.
+const AVATAR_COLORS = ['#17A94C', '#5B21E8', '#B45309', '#1D66C9', '#DC2626', '#0F766E'];
+const avatarColor = (seed) => AVATAR_COLORS[Math.abs(Number(seed) || 0) % AVATAR_COLORS.length];
+const initials = (u) => (u.full_name || u.email || '?').trim().split(/\s+/).map((s) => s[0]).slice(0, 2).join('').toUpperCase();
+
+// A compact, colour-coded item card for the overview columns.
+const MiniCard = ({ prefix = '', id, title, status, meta, foot }) => {
+  const tone = statusTone(status);
+  return (
+    <div className="admin-icard" style={{ '--st': TONE_HEX[tone] || '#94A3B8' }}>
+      <div className="admin-icard-top">
+        <span className="admin-icard-id">{prefix}{id}</span>
+        <Badge text={status || '—'} tone={tone} />
+      </div>
+      <div className="admin-icard-title">{title || 'Untitled'}</div>
+      <div className="admin-icard-meta">{meta}</div>
+      {foot}
+    </div>
+  );
+};
+
 export const AdminDashboard = () => {
   const { handleLogout } = useAppContext();
   const [tab, setTab] = useState('overview');
@@ -75,7 +99,13 @@ export const AdminDashboard = () => {
     setLoading(true);
     setError('');
     try {
-      if (which === 'overview') setStats(await adminApi.getStats());
+      if (which === 'overview') {
+        // The overview shows live cards, so pull the supporting lists too.
+        const [s, it, mt, us] = await Promise.all([
+          adminApi.getStats(), adminApi.getItems(), adminApi.getMatches(), adminApi.getUsers(),
+        ]);
+        setStats(s); setItems(it); setMatches(mt); setUsers(us);
+      }
       else if (which === 'users') setUsers(await adminApi.getUsers());
       else if (which === 'reports') setItems(await adminApi.getItems());
       else if (which === 'matches') setMatches(await adminApi.getMatches());
@@ -141,6 +171,75 @@ export const AdminDashboard = () => {
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Colourful card-column board: recent lost / found / matches */}
+              <div className="admin-section-title" style={{ marginTop: '0.5rem' }}><LayoutDashboard size={16} color="var(--primary)" /> Recent Activity</div>
+              <div className="admin-board">
+                <div className="admin-col2">
+                  <div className="admin-col2-head">
+                    <span className="c-ic" style={{ background: '#FEE2E2', color: '#DC2626' }}><Search size={16} /></span>
+                    <h4>Recent Lost Reports</h4>
+                    <span className="c-count">{items.lost_items.length}</span>
+                  </div>
+                  <div className="admin-col2-body">
+                    {items.lost_items.slice(0, 6).map((r) => (
+                      <MiniCard key={r.id} prefix="LST-" id={r.id} title={r.title} status={r.status}
+                        meta={<>{r.category} · {r.location || '—'} · by <b>{r.user}</b></>} />
+                    ))}
+                    {items.lost_items.length === 0 && <div className="admin-tbl-empty">No lost reports yet.</div>}
+                  </div>
+                </div>
+
+                <div className="admin-col2">
+                  <div className="admin-col2-head">
+                    <span className="c-ic" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}><PlusCircle size={16} /></span>
+                    <h4>Recent Found Reports</h4>
+                    <span className="c-count">{items.found_items.length}</span>
+                  </div>
+                  <div className="admin-col2-body">
+                    {items.found_items.slice(0, 6).map((r) => (
+                      <MiniCard key={r.id} prefix="FND-" id={r.id} title={r.title} status={r.status}
+                        meta={<>{r.category} · {r.location || '—'} · by <b>{r.user}</b></>} />
+                    ))}
+                    {items.found_items.length === 0 && <div className="admin-tbl-empty">No found reports yet.</div>}
+                  </div>
+                </div>
+
+                <div className="admin-col2">
+                  <div className="admin-col2-head">
+                    <span className="c-ic" style={{ background: 'var(--purple-light)', color: 'var(--purple)' }}><Sparkles size={16} /></span>
+                    <h4>AI Matches</h4>
+                    <span className="c-count">{matches.length}</span>
+                  </div>
+                  <div className="admin-col2-body">
+                    {matches.slice(0, 6).map((m) => (
+                      <MiniCard key={m.id} prefix="MTC-" id={m.id} title={m.lost_item} status={m.status}
+                        meta={<>matched with <b>{m.found_item}</b></>}
+                        foot={<div className="admin-icard-foot"><span className="admin-conf">{Math.round((m.confidence_score || 0) * 100)}% confidence</span></div>} />
+                    ))}
+                    {matches.length === 0 && <div className="admin-tbl-empty">No matches yet.</div>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent users */}
+              <div className="admin-section-title" style={{ marginTop: '1.5rem' }}><Users size={16} color="var(--primary)" /> Recent Users</div>
+              <div className="admin-col2">
+                <div className="admin-users-grid">
+                  {[...users].slice(-8).reverse().map((u) => (
+                    <div className="admin-user" key={u.id}>
+                      <span className="admin-user-av" style={{ background: avatarColor(u.id) }}>{initials(u)}</span>
+                      <div className="admin-user-info">
+                        <div className="admin-user-name">{u.full_name || 'Unnamed user'}</div>
+                        <div className="admin-user-email">{u.email}</div>
+                        <div className="admin-user-stats">{u.lost_count ?? 0} lost · {u.found_count ?? 0} found</div>
+                      </div>
+                      {u.is_staff && <Badge text="Staff" tone="purple" />}
+                    </div>
+                  ))}
+                  {users.length === 0 && <div className="admin-tbl-empty">No users yet.</div>}
+                </div>
               </div>
             </>
           )}
