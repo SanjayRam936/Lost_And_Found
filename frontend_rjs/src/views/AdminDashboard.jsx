@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, Users, Package, Sparkles, ShieldCheck, LogOut, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Sparkles, ShieldCheck, LogOut, RefreshCw, Search, PlusCircle, Layers, TrendingUp, CheckCircle2, Gift } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { ShieldLogo } from '../components/ShieldLogo';
 import * as adminApi from '../api/admin';
@@ -29,25 +29,21 @@ const Badge = ({ text, tone = 'gray' }) => {
 const statusTone = (s) => ({ STRONG: 'green', REVIEW: 'purple', RESOLVED: 'green', MATCHED: 'orange', INITIATED: 'blue', PENDING: 'gray', HANDED_OVER: 'blue', DISMISSED: 'gray', ACTIVE: 'blue' }[s] || 'gray');
 
 const Table = ({ columns, rows, empty }) => (
-  <div style={{ overflowX: 'auto', border: '1px solid var(--border-light)', borderRadius: 12, background: 'white' }}>
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+  <div className="admin-tbl-wrap">
+    <table className="admin-tbl">
       <thead>
-        <tr style={{ background: 'var(--bg-alt)' }}>
-          {columns.map((c) => (
-            <th key={c.key} style={{ textAlign: 'left', padding: '10px 14px', color: 'var(--text-gray)', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-light)' }}>{c.label}</th>
-          ))}
+        <tr>
+          {columns.map((c) => <th key={c.key}>{c.label}</th>)}
         </tr>
       </thead>
       <tbody>
         {rows.length === 0 && (
-          <tr><td colSpan={columns.length} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-gray)' }}>{empty || 'No data.'}</td></tr>
+          <tr><td className="admin-tbl-empty" colSpan={columns.length}>{empty || 'No data.'}</td></tr>
         )}
         {rows.map((row, i) => (
-          <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
+          <tr key={i}>
             {columns.map((c) => (
-              <td key={c.key} style={{ padding: '10px 14px', color: 'var(--text-dark)', whiteSpace: 'nowrap' }}>
-                {c.render ? c.render(row) : (row[c.key] ?? '—')}
-              </td>
+              <td key={c.key}>{c.render ? c.render(row) : (row[c.key] ?? '—')}</td>
             ))}
           </tr>
         ))}
@@ -55,6 +51,14 @@ const Table = ({ columns, rows, empty }) => (
     </table>
   </div>
 );
+
+// Theme-aligned tints for the overview stat cards.
+const STAT_TONES = {
+  green: { bg: 'var(--primary-light)', fg: 'var(--primary-hover)' },
+  violet: { bg: 'var(--purple-light)', fg: 'var(--purple)' },
+  amber: { bg: '#FEF3C7', fg: '#B45309' },
+  dark: { bg: '#E5E7EB', fg: '#0A0A0A' },
+};
 
 export const AdminDashboard = () => {
   const { handleLogout } = useAppContext();
@@ -89,23 +93,24 @@ export const AdminDashboard = () => {
     <div className="admin-layout">
       <div className="admin-sidebar">
         <div className="admin-sidebar-header">
-          <ShieldLogo /> <span style={{ fontWeight: 700, color: 'var(--text-dark)' }}>Admin Portal</span>
+          <ShieldLogo color="#34D06A" /> <span className="admin-portal-title">Admin Portal</span>
         </div>
         <div className="admin-nav">
+          <div className="admin-nav-label">Menu</div>
           {NAV.map(({ key, label, icon: Icon }) => (
             <button key={key} className={`admin-nav-item ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>
               <Icon size={18} /> {label}
             </button>
           ))}
-          <button className="admin-nav-item" onClick={handleLogout}><LogOut size={18} /> Exit Admin</button>
+          <button className="admin-nav-item admin-exit" onClick={handleLogout}><LogOut size={18} /> Exit Admin</button>
         </div>
       </div>
 
       <div className="admin-content">
-        <div className="admin-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="admin-topbar">
           <h3 style={{ textTransform: 'capitalize' }}>{tab}</h3>
-          <button className="admin-nav-item" style={{ width: 'auto' }} onClick={() => load(tab)} disabled={loading}>
-            <RefreshCw size={16} /> {loading ? 'Loading…' : 'Refresh'}
+          <button className="admin-refresh-btn" onClick={() => load(tab)} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'spin' : ''} /> {loading ? 'Loading…' : 'Refresh'}
           </button>
         </div>
 
@@ -113,24 +118,31 @@ export const AdminDashboard = () => {
           {error && <div className="error-text" style={{ marginBottom: '1rem' }}>{error}</div>}
 
           {tab === 'overview' && (
-            <div className="admin-stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-              {[
-                ['Total Users', stats?.users, '#111827'],
-                ['Active Reports', stats?.active_reports, '#1D4ED8'],
-                ['Lost Items', stats?.lost_items, '#B91C1C'],
-                ['Found Items', stats?.found_items, '#047857'],
-                ['AI Matches', stats?.total_matches, '#6366F1'],
-                ['Strong/Review', stats?.strong_matches, '#7C3AED'],
-                ['Claims', stats?.claims, '#B45309'],
-                ['Resolved Claims', stats?.resolved_claims, '#047857'],
-                ['Rewards Paid', stats?.rewards_paid, '#047857'],
-              ].map(([label, val, color]) => (
-                <div className="admin-stat-card" key={label}>
-                  <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>{label}</div>
-                  <div className="admin-stat-value" style={{ color }}>{val ?? (loading ? '…' : 0)}</div>
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="admin-section-title"><LayoutDashboard size={16} color="var(--primary)" /> Platform Overview</div>
+              <div className="admin-stats-row">
+                {[
+                  ['Total Users', stats?.users, Users, 'dark'],
+                  ['Active Reports', stats?.active_reports, Layers, 'green'],
+                  ['Lost Items', stats?.lost_items, Search, 'dark'],
+                  ['Found Items', stats?.found_items, PlusCircle, 'green'],
+                  ['AI Matches', stats?.total_matches, Sparkles, 'violet'],
+                  ['Strong / Review', stats?.strong_matches, TrendingUp, 'violet'],
+                  ['Claims', stats?.claims, ShieldCheck, 'amber'],
+                  ['Resolved Claims', stats?.resolved_claims, CheckCircle2, 'green'],
+                  ['Rewards Paid', stats?.rewards_paid, Gift, 'green'],
+                ].map(([label, val, Icon, tone]) => {
+                  const t = STAT_TONES[tone];
+                  return (
+                    <div className="admin-stat-card" key={label}>
+                      <span className="admin-stat-icon" style={{ background: t.bg, color: t.fg }}><Icon size={18} /></span>
+                      <div className="admin-stat-value">{val ?? (loading ? '…' : 0)}</div>
+                      <div className="admin-stat-label">{label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {tab === 'users' && (
@@ -150,7 +162,7 @@ export const AdminDashboard = () => {
 
           {tab === 'reports' && (
             <>
-              <h4 style={{ margin: '0.25rem 0 0.75rem' }}>Lost ({items.lost_items.length})</h4>
+              <div className="admin-section-title"><Search size={16} color="var(--primary)" /> Lost Items ({items.lost_items.length})</div>
               <Table
                 columns={[
                   { key: 'id', label: 'ID' },
@@ -162,7 +174,7 @@ export const AdminDashboard = () => {
                 ]}
                 rows={items.lost_items}
               />
-              <h4 style={{ margin: '1.25rem 0 0.75rem' }}>Found ({items.found_items.length})</h4>
+              <div className="admin-section-title" style={{ marginTop: '1.5rem' }}><PlusCircle size={16} color="var(--primary)" /> Found Items ({items.found_items.length})</div>
               <Table
                 columns={[
                   { key: 'id', label: 'ID' },
