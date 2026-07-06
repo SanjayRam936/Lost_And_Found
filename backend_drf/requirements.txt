@@ -8,6 +8,7 @@ psycopg[binary]
 razorpay
 drf-spectacular   # OpenAPI 3 schema + Swagger UI / ReDoc
 dnspython         # MX lookup to reject non-existent email domains
+requests          # Brevo HTTPS email API (SMTP is blocked on HF Spaces)
 
 # ── Production serving ───────────────────────────────────────
 gunicorn          # WSGI server for production (Hugging Face Spaces)

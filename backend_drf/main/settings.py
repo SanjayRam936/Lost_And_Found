@@ -298,8 +298,12 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'Lost & Found <no-reply@lostfound.ai>')
 EMAIL_TIMEOUT = 10
 
+# Brevo (Sendinblue) HTTPS API — used in preference to SMTP because managed hosts
+# like Hugging Face Spaces block outbound SMTP ports. Set BREVO_API_KEY to enable.
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+
 if EMAIL_HOST_USER:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 else:
-    # No credentials configured -> don't crash; log the code to the console.
+    # No SMTP credentials -> don't crash; log the code to the console (local dev).
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
