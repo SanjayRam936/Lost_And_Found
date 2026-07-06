@@ -19,7 +19,7 @@ export const Navbar = () => {
           </button>
         )}
         <div className="nav-brand" onClick={() => navigateTo(isLoggedIn ? 'dashboard' : 'home')}>
-          <ShieldLogo />
+          <ShieldLogo color="#34D06A" />
           <span className="brand-text">Lost&Found</span>
         </div>
       </div>
