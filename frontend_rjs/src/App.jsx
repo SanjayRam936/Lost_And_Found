@@ -5,6 +5,7 @@ import { BottomNav } from './components/BottomNav';
 import { ShieldLogo } from './components/ShieldLogo';
 import { Home } from './views/Home';
 import { Login, Register } from './views/Auth';
+import { VerifyEmail } from './views/VerifyEmail';
 import { Dashboard } from './views/Dashboard';
 import { ReportItem } from './views/ReportItem';
 import { MyReports } from './views/MyReports';
@@ -34,7 +35,7 @@ import { ImageLightbox } from './components/ImageLightbox';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Pages a logged-out visitor is allowed to see. Everything else requires auth.
-const PUBLIC_VIEWS = ['home', 'login', 'register', 'admin-login'];
+const PUBLIC_VIEWS = ['home', 'login', 'register', 'admin-login', 'verify-email'];
 
 const ViewRouter = () => {
   const { currentView, isLoading, bootstrapping, isLoggedIn } = useAppContext();
@@ -59,6 +60,7 @@ const ViewRouter = () => {
     case 'home': return <Home />;
     case 'login': return <Login />;
     case 'register': return <Register />;
+    case 'verify-email': return <VerifyEmail />;
     case 'dashboard': return <Dashboard />;
     case 'report': return <ReportItem />;
     case 'my-reports': return <MyReports />;

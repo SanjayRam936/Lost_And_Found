@@ -199,7 +199,7 @@ export const Register = () => {
     });
 
     if (!nameErr && !emailErr && !phoneErr && !passErr && !confirmErr) {
-      // On success the context logs the user in and redirects to the dashboard.
+      // On success the context sends the user to the email-verification screen.
       await handleRegisterSubmit({
         fullName: regName.trim(),
         email: regEmail,

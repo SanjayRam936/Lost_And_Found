@@ -54,6 +54,7 @@ export const AppProvider = ({ children }) => {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(true);
+  const [pendingEmail, setPendingEmail] = useState('');  // email awaiting OTP verification
 
   // Login Form State
   const [email, setEmail] = useState('');
@@ -329,32 +330,68 @@ export const AppProvider = ({ children }) => {
       applyAuthenticatedUser(u);
       setPassword('');
     } catch (err) {
+      // Unverified account -> route to the email verification screen.
+      const d = err?.response?.data;
+      if (d?.code === 'email_not_verified') {
+        setPendingEmail(d.email || email);
+        setAuthError('');
+        navigateTo('verify-email');
+        return;
+      }
       setAuthError(apiError(err, 'Invalid email or password.'));
     } finally {
       setAuthLoading(false);
     }
   };
 
-  // Registration: backend returns tokens, so the user is logged straight in.
+  // Registration: emails a 6-digit code and sends the user to the verify screen.
   const handleRegisterSubmit = async ({ fullName, email: regE, phone, password: regP, confirmPassword }) => {
     setAuthError('');
     setAuthLoading(true);
     try {
-      const u = await authApi.register({
+      const res = await authApi.register({
         full_name: fullName,
         email: regE,
         phone_number: phone,
         password: regP,
         password2: confirmPassword,
       });
-      applyAuthenticatedUser(u);
-      return { ok: true };
+      setPendingEmail(res.email);
+      navigateTo('verify-email');
+      return { ok: true, needsVerification: true };
     } catch (err) {
       const msg = apiError(err, 'Could not create account.');
       setAuthError(msg);
       return { ok: false, error: msg };
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  // Confirm the emailed OTP -> logs the user in.
+  const handleVerifyEmail = async (code) => {
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      const u = await authApi.verifyEmail(pendingEmail, code);
+      setPendingEmail('');
+      applyAuthenticatedUser(u);
+      return { ok: true };
+    } catch (err) {
+      const msg = apiError(err, 'Could not verify the code.');
+      setAuthError(msg);
+      return { ok: false, error: msg };
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleResendEmailOtp = async () => {
+    try {
+      await authApi.resendOtp(pendingEmail);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: apiError(err, 'Could not resend the code.') };
     }
   };
 
@@ -667,6 +704,7 @@ export const AppProvider = ({ children }) => {
       currentView, setCurrentView, currentParams, setCurrentParams, navigateTo, goBack,
       isLoggedIn, setIsLoggedIn, handleLoginSubmit, handleLogout,
       isAdmin, setIsAdmin, handleAdminLoginSubmit, handleRegisterSubmit,
+      pendingEmail, handleVerifyEmail, handleResendEmailOtp,
       isLoading, setIsLoading,
       confirmConfig, askConfirm, resolveConfirm,
       lightboxImage, openImage, closeImage,

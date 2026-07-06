@@ -688,7 +688,7 @@
   .admin-col2-head h4 { margin: 0; font-size: 0.95rem; font-weight: 800; flex: 1; letter-spacing: -.01em; color: var(--text-dark); }
   .admin-col2-head .c-count { background: var(--bg-alt); border: 1px solid var(--border-light); color: var(--text-gray); font-weight: 800; font-size: 0.74rem; min-width: 24px; height: 22px; padding: 0 7px; border-radius: 11px; display: grid; place-items: center; }
   .admin-col2-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; max-height: 560px; overflow-y: auto; }
-  .admin-icard { position: relative; border: 1px solid var(--border-light); border-radius: 12px; background: var(--bg-alt); padding: 14px 15px 14px 17px; overflow: hidden; transition: transform .14s ease, box-shadow .14s ease, border-color .14s; }
+  .admin-icard { position: relative; flex-shrink: 0; border: 1px solid var(--border-light); border-radius: 12px; background: var(--bg-alt); padding: 14px 15px 14px 17px; overflow: hidden; transition: transform .14s ease, box-shadow .14s ease, border-color .14s; }
   .admin-icard:hover { transform: translateY(-2px); box-shadow: 0 12px 22px -12px rgba(16,24,40,.2); border-color: color-mix(in srgb, var(--primary) 40%, var(--border-light)); }
   .admin-icard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--st, #94A3B8); }
   .admin-icard-row { display: flex; gap: 12px; align-items: flex-start; }
@@ -706,8 +706,10 @@
   /* Match comparison — lost vs found images side by side so the admin can verify. */
   .admin-match-pair { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0 2px; }
   .admin-match-side { flex: 1; min-width: 0; text-align: center; }
-  .admin-match-img { width: 100%; height: 78px; object-fit: cover; border-radius: 9px; border: 1px solid var(--border-light); background: #fff; cursor: zoom-in; display: block; }
-  .admin-match-img.admin-icard-noimg { height: 78px; }
+  /* Taller box + contain (not cover) so the whole item photo is visible inside
+     the container — the admin clicks to enlarge for a closer look. */
+  .admin-match-img { width: 100%; height: 150px; object-fit: contain; padding: 6px; border-radius: 9px; border: 1px solid var(--border-light); background: #fff; cursor: zoom-in; display: block; }
+  .admin-match-img.admin-icard-noimg { height: 150px; padding: 0; }
   .admin-match-cap { font-size: 0.7rem; color: var(--text-gray); margin-top: 5px; line-height: 1.35; }
   .admin-match-cap b { color: var(--text-dark); font-weight: 700; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .admin-match-vs { color: var(--primary); font-weight: 800; flex: 0 0 auto; align-self: center; font-size: 1.1rem; }
@@ -728,6 +730,16 @@
   .admin-user-stats { font-size: 0.7rem; color: var(--text-light); margin-top: 2px; font-weight: 600; }
   @media (max-width: 1024px) { .admin-board { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 760px) { .admin-board { grid-template-columns: 1fr; } }
+
+  /* Tablet+ : lock the admin shell to the viewport so the sidebar stays fixed
+     and only the content area scrolls (scoped to admin pages via :has). */
+  @media (min-width: 769px) {
+    .app-container:has(.admin-layout) { height: 100vh; overflow: hidden; }
+    .app-container:has(.admin-layout) .main-content { min-height: 0; }
+    .admin-layout { min-height: 0; }
+    .admin-content { min-height: 0; }
+    .admin-sidebar { overflow-y: auto; }
+  }
   .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
 
   /* --- RESPONSIVE DESIGN --- */

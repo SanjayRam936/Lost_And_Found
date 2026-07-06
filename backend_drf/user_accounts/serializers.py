@@ -64,7 +64,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         value = (value or '').strip().lower()
         if '@' not in value:
             raise serializers.ValidationError('Please enter a valid email address.')
-        if User.objects.filter(email__iexact=value).exists():
+        # Block only a VERIFIED account. An email that was registered but never
+        # verified can be re-registered (we simply reissue a new code).
+        if User.objects.filter(email__iexact=value, is_email_verified=True).exists():
             raise serializers.ValidationError('A user with this email already exists.')
 
         domain = value.rsplit('@', 1)[-1]
@@ -97,6 +99,16 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
+        # If the account exists but hasn't verified its email, route the user to
+        # the verification screen instead of a generic "invalid credentials".
+        email = (attrs.get(self.username_field) or '').strip().lower()
+        pending = User.objects.filter(email__iexact=email, is_email_verified=False).first()
+        if pending is not None:
+            raise serializers.ValidationError({
+                'code': 'email_not_verified',
+                'email': pending.email,
+                'detail': 'Please verify your email to continue. We can send you a new code.',
+            })
         data = super().validate(attrs)
         data['user'] = UserSerializer(self.user).data
         return data

@@ -1,6 +1,7 @@
 import api, { tokenStore } from './client';
 
-// Register -> backend returns { user, access, refresh } and logs the user in.
+// Register -> emails a 6-digit code and creates an INACTIVE account. Does NOT
+// log in; returns { needsVerification, email } so the UI can show the OTP step.
 export async function register({ full_name, email, phone_number, password, password2 }) {
   const { data } = await api.post('/register/', {
     full_name,
@@ -9,8 +10,20 @@ export async function register({ full_name, email, phone_number, password, passw
     password,
     password2,
   });
+  return { needsVerification: true, email: data.email || email };
+}
+
+// Verify the emailed 6-digit code -> logs the user in.
+export async function verifyEmail(email, code) {
+  const { data } = await api.post('/verify-email/', { email, code });
   tokenStore.set({ access: data.access, refresh: data.refresh });
   return data.user;
+}
+
+// Ask the backend to reissue and resend the verification code.
+export async function resendOtp(email) {
+  const { data } = await api.post('/resend-otp/', { email });
+  return data;
 }
 
 // Login -> { user, access, refresh }.
