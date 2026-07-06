@@ -124,10 +124,15 @@ export const MyReports = () => {
                     <button className="btn-card-action btn-purple-solid" onClick={(e) => { e.stopPropagation(); openFinderClaim(r); }}>Enter Handover OTP</button>
                  )}
 
-                 {/* Finder: matched but the owner hasn't started a handover yet */}
+                 {/* Finder: matched. Direct handover waits for the owner to start it;
+                     police/institution drop-offs are already handed over. */}
                  {r.type === 'found' && r.status === 'matched' && (
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-gray)', padding: '0.5rem 0 0' }}>
-                      Matched — waiting for the owner to start the handover.
+                      {r.handoverType === 'POLICE'
+                        ? 'Matched — handed over to the police station. The owner can collect it there.'
+                        : r.handoverType === 'INSTITUTION'
+                        ? 'Matched — handed over to the institution / admin desk. The owner can collect it there.'
+                        : 'Matched — waiting for the owner to start the handover.'}
                     </div>
                  )}
 
