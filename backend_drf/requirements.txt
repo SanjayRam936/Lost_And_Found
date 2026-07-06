@@ -5,7 +5,6 @@ djangorestframework-simplejwt
 django-cors-headers
 python-dotenv
 psycopg[binary]
-razorpay
 drf-spectacular   # OpenAPI 3 schema + Swagger UI / ReDoc
 dnspython         # MX lookup to reject non-existent email domains
 requests          # Brevo HTTPS email API (SMTP is blocked on HF Spaces)

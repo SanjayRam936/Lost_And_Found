@@ -1,5 +1,5 @@
+from urllib.parse import quote
 from rest_framework import serializers
-from django.conf import settings
 from .models import Reward
 
 
@@ -10,13 +10,18 @@ def _display_name(user):
 
 
 def build_upi_link(reward):
-    """Razorpay-style UPI intent deep link (mock payee for the demo)."""
+    """UPI intent deep link that pays the FINDER directly (their own UPI ID).
+    Returns '' when the finder hasn't added a UPI ID yet."""
+    finder = reward.claim.finder if reward.claim_id else None
+    vpa = (getattr(finder, 'upi_id', '') or '').strip()
+    if not vpa:
+        return ''
     amount = reward.amount or 0
+    name = _display_name(finder) or 'Finder'
     item = reward.claim.match.lost_item.title if reward.claim_id else 'item'
-    note = f"Reward for {item}".replace(' ', '%20')
     return (
-        f"upi://pay?pa=lostfound@upi&pn=LostFound.ai"
-        f"&am={amount}&cu=INR&tn={note}"
+        f"upi://pay?pa={quote(vpa)}&pn={quote(name)}"
+        f"&am={amount}&cu=INR&tn={quote(f'Reward for {item}')}"
     )
 
 
@@ -26,18 +31,18 @@ class RewardSummarySerializer(serializers.ModelSerializer):
     item_title = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()
     upi_link = serializers.SerializerMethodField()
-    razorpay_enabled = serializers.SerializerMethodField()
+    finder_upi_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Reward
         fields = [
             'id', 'claim', 'amount', 'escrow_status', 'finder_name', 'owner_name',
-            'item_title', 'role', 'upi_link', 'razorpay_enabled', 'created_at',
+            'item_title', 'role', 'upi_link', 'finder_upi_id', 'created_at',
         ]
-        read_only_fields = ['escrow_status', 'finder_name', 'owner_name', 'item_title', 'role', 'upi_link', 'razorpay_enabled']
+        read_only_fields = ['escrow_status', 'finder_name', 'owner_name', 'item_title', 'role', 'upi_link', 'finder_upi_id']
 
-    def get_razorpay_enabled(self, obj):
-        return bool(settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET)
+    def get_finder_upi_id(self, obj):
+        return (getattr(obj.claim.finder, 'upi_id', '') or '')
 
     def _user(self):
         request = self.context.get('request')

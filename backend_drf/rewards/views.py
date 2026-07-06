@@ -1,22 +1,20 @@
+import logging
+import secrets
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from django.conf import settings
-
-import razorpay
 
 from .models import Reward
 from claims.models import Claim
 from notifications.services import notify
 from .serializers import RewardSummarySerializer, RewardAmountUpdateSerializer
 
+logger = logging.getLogger(__name__)
 
-def _razorpay_client():
-    if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
-        return None
-    return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+OTP_MAX_ATTEMPTS = 5
 
 
 def _get_reward_for_participant(claim_id, user):
@@ -51,10 +49,7 @@ class RewardSummaryView(APIView):
         if error:
             return error
         if request.user != reward.claim.owner:
-            return Response(
-                {"detail": "Only the owner can set the reward amount."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            return Response({"detail": "Only the owner can set the reward amount."}, status=status.HTTP_403_FORBIDDEN)
         serializer = RewardAmountUpdateSerializer(reward, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save(escrow_status='LOCKED')
@@ -62,7 +57,7 @@ class RewardSummaryView(APIView):
 
 
 class RewardLinkView(APIView):
-    """GET /reward/<claim_id>/link/ -> UPI deep link for the set amount."""
+    """GET /reward/<claim_id>/link/ -> UPI deep link to pay the finder directly."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, claim_id):
@@ -73,22 +68,11 @@ class RewardLinkView(APIView):
         return Response({"upi_link": data['upi_link'], "amount": data['amount']})
 
 
-def _release_reward(reward, payment_ref=None):
-    """Mark a reward released and notify the finder (used by both verify + mock)."""
-    reward.escrow_status = 'RELEASED'
-    reward.save(update_fields=['escrow_status', 'updated_at'])
-    notify(
-        reward.claim.finder, 'REWARD_RECEIVED', 'Reward received',
-        f'You received a reward of ₹{reward.amount} for returning '
-        f'"{reward.claim.match.lost_item.title}".',
-        reference_id=reward.claim_id,
-    )
-
-
-class RewardCreateOrderView(APIView):
+class RewardInitiateView(APIView):
     """
-    POST /reward/<claim_id>/order/  -> Owner creates a Razorpay order for the
-    set amount. Returns the order id + public key for the checkout widget.
+    POST /reward/<claim_id>/initiate/  -> Owner confirms they've sent the UPI
+    payment. Generates a 6-digit OTP and delivers it to the finder, who enters it
+    only if the money actually arrived.
     """
     permission_classes = [IsAuthenticated]
 
@@ -97,38 +81,32 @@ class RewardCreateOrderView(APIView):
         if error:
             return error
         if request.user != reward.claim.owner:
-            return Response({"detail": "Only the owner can pay the reward."}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": "Only the owner can send the reward."}, status=status.HTTP_403_FORBIDDEN)
         if reward.amount is None or reward.amount <= 0:
             return Response({"detail": "Set a reward amount first."}, status=status.HTTP_400_BAD_REQUEST)
+        if reward.escrow_status == 'RELEASED':
+            return Response({"detail": "This reward is already released."}, status=status.HTTP_400_BAD_REQUEST)
 
-        client = _razorpay_client()
-        if client is None:
-            return Response(
-                {"detail": "Razorpay is not configured. Set RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+        otp = f"{secrets.randbelow(1_000_000):06d}"
+        reward.otp = otp
+        reward.otp_attempts = 0
+        reward.escrow_status = 'AWAITING'
+        reward.save(update_fields=['otp', 'otp_attempts', 'escrow_status', 'updated_at'])
 
-        amount_paise = int(round(float(reward.amount) * 100))
-        order = client.order.create({
-            'amount': amount_paise,
-            'currency': 'INR',
-            'receipt': f'reward_{reward.claim_id}',
-            'notes': {'claim_id': str(reward.claim_id)},
-        })
-        reward.escrow_status = 'LOCKED'
-        reward.save(update_fields=['escrow_status', 'updated_at'])
-        return Response({
-            'order_id': order['id'],
-            'amount': amount_paise,
-            'currency': 'INR',
-            'key_id': settings.RAZORPAY_KEY_ID,
-        })
+        notify(
+            reward.claim.finder, 'OTP_SENT', 'Confirm your reward',
+            f'The owner sent your ₹{reward.amount} reward for '
+            f'"{reward.claim.match.lost_item.title}". If you received the payment, '
+            f'enter this code to confirm: {otp}',
+            reference_id=reward.claim_id,
+        )
+        return Response({"message": "Confirmation code sent to the finder.", "escrow_status": "AWAITING"})
 
 
-class RewardVerifyPaymentView(APIView):
+class RewardConfirmView(APIView):
     """
-    POST /reward/<claim_id>/verify/  -> verify the Razorpay signature returned by
-    the checkout widget, then release the reward to the finder.
+    POST /reward/<claim_id>/confirm/  -> Finder enters the OTP to confirm receipt.
+    Releases the reward. Body: { "otp": "123456" }.
     """
     permission_classes = [IsAuthenticated]
 
@@ -136,45 +114,31 @@ class RewardVerifyPaymentView(APIView):
         reward, error = _get_reward_for_participant(claim_id, request.user)
         if error:
             return error
-
-        client = _razorpay_client()
-        if client is None:
-            return Response({"detail": "Razorpay is not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
-        params = {
-            'razorpay_order_id': request.data.get('razorpay_order_id'),
-            'razorpay_payment_id': request.data.get('razorpay_payment_id'),
-            'razorpay_signature': request.data.get('razorpay_signature'),
-        }
-        if not all(params.values()):
-            return Response({"detail": "Missing payment parameters."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            client.utility.verify_payment_signature(params)
-        except razorpay.errors.SignatureVerificationError:
-            return Response({"detail": "Payment signature verification failed."}, status=status.HTTP_400_BAD_REQUEST)
-
-        if reward.escrow_status != 'RELEASED':
-            _release_reward(reward, payment_ref=params['razorpay_payment_id'])
-        return Response({"message": "Payment verified. Reward released.", "escrow_status": "RELEASED"})
-
-
-class RewardConfirmPaymentView(APIView):
-    """
-    POST /reward/webhook/confirm/  -> mock payment confirmation (no auth), used
-    as a fallback for the demo when Razorpay keys are not configured.
-    Body: { "claim_id": <id> }.
-    """
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        claim_id = request.data.get('claim_id')
-        if not claim_id:
-            return Response({"detail": "claim_id is required."}, status=status.HTTP_400_BAD_REQUEST)
-        reward = get_object_or_404(Reward, claim_id=claim_id)
+        if request.user != reward.claim.finder:
+            return Response({"detail": "Only the finder can confirm receipt."}, status=status.HTTP_403_FORBIDDEN)
         if reward.escrow_status == 'RELEASED':
-            return Response({"detail": "Reward already released."}, status=status.HTTP_400_BAD_REQUEST)
-        _release_reward(reward)
-        return Response({
-            "message": "Reward released. Case closed.",
-            "escrow_status": reward.escrow_status,
-        }, status=status.HTTP_200_OK)
+            return Response({"message": "Already confirmed.", "escrow_status": "RELEASED"})
+        if reward.escrow_status != 'AWAITING' or not reward.otp:
+            return Response({"detail": "No confirmation is pending yet. Ask the owner to send the reward first."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if reward.otp_attempts >= OTP_MAX_ATTEMPTS:
+            return Response({"detail": "Too many incorrect attempts. Ask the owner to resend."},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        code = (request.data.get('otp') or '').strip()
+        if code != reward.otp:
+            reward.otp_attempts += 1
+            reward.save(update_fields=['otp_attempts'])
+            return Response({"detail": "Incorrect code. Please check and try again."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        reward.escrow_status = 'RELEASED'
+        reward.otp = ''
+        reward.save(update_fields=['escrow_status', 'otp', 'updated_at'])
+        notify(
+            reward.claim.owner, 'CLAIM_UPDATE', 'Reward confirmed',
+            f'{reward.claim.finder.full_name or "The finder"} confirmed receiving the '
+            f'₹{reward.amount} reward. The case is closed.',
+            reference_id=reward.claim_id,
+        )
+        return Response({"message": "Reward confirmed.", "escrow_status": "RELEASED"})

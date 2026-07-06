@@ -15,32 +15,15 @@ export async function getRewardLink(claimId) {
   return data;
 }
 
-// Razorpay: create an order for the set amount.
-export async function createOrder(claimId) {
-  const { data } = await api.post(`/reward/${claimId}/order/`);
+// Owner confirms they've sent the UPI payment -> backend emails/notifies the
+// finder a 6-digit OTP to confirm receipt (reward moves to AWAITING).
+export async function initiateReward(claimId) {
+  const { data } = await api.post(`/reward/${claimId}/initiate/`);
   return data;
 }
 
-// Razorpay: verify the checkout signature server-side (releases the reward).
-export async function verifyPayment(claimId, payload) {
-  const { data } = await api.post(`/reward/${claimId}/verify/`, payload);
+// Finder enters the OTP to confirm they received the money (-> RELEASED).
+export async function confirmRewardOtp(claimId, otp) {
+  const { data } = await api.post(`/reward/${claimId}/confirm/`, { otp });
   return data;
-}
-
-// Mock payment confirmation — fallback for the demo when Razorpay isn't configured.
-export async function confirmRewardPayment(claimId) {
-  const { data } = await api.post('/reward/webhook/confirm/', { claim_id: claimId });
-  return data;
-}
-
-// Load the Razorpay Checkout script once.
-export function loadRazorpayScript() {
-  return new Promise((resolve) => {
-    if (window.Razorpay) return resolve(true);
-    const s = document.createElement('script');
-    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
 }

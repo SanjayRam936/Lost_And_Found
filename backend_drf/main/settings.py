@@ -137,11 +137,13 @@ DATABASES = {
         'PASSWORD': env_str('POSTGRES_PASSWORD', 'postgres'),
         'HOST': env_str('POSTGRES_HOST', 'localhost'),
         'PORT': env_str('POSTGRES_PORT', '5432'),
-        # Reuse DB connections across requests (up to 60s) instead of opening a
-        # fresh SSL handshake to Supabase every time — big latency win on reads.
-        # Safe with Supabase's SESSION pooler (port 5432). Health-check avoids
-        # handing a stale/broken connection to a request.
-        'CONN_MAX_AGE': 60,
+        # Supabase's session pooler caps concurrent clients (pool_size 15 on the
+        # free tier). Holding idle connections (a high CONN_MAX_AGE) across the HF
+        # workers + local dev quickly exhausts that pool ("max clients reached").
+        # Default to 0 so Django releases each connection right after the request;
+        # the Supabase pooler already keeps warm connections on its side. Can be
+        # raised via DB_CONN_MAX_AGE once on a bigger plan / transaction pooler.
+        'CONN_MAX_AGE': int(env_str('DB_CONN_MAX_AGE', '0') or '0'),
         'CONN_HEALTH_CHECKS': True,
         # Managed Postgres (e.g. Supabase) requires SSL. Set POSTGRES_SSLMODE=require.
         'OPTIONS': ({'sslmode': env_str('POSTGRES_SSLMODE')}
@@ -283,6 +285,14 @@ SIMPLE_JWT = {
 #   setx RAZORPAY_KEY_SECRET  yyy
 RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
+
+# ── Cashfree Payment Gateway (reward payments) ──────────────────────────────
+# Set CASHFREE_APP_ID + CASHFREE_SECRET_KEY (secret). CASHFREE_ENV = 'sandbox'
+# (test keys) or 'production' (live keys).
+CASHFREE_APP_ID = os.environ.get('CASHFREE_APP_ID', '').strip()
+CASHFREE_SECRET_KEY = os.environ.get('CASHFREE_SECRET_KEY', '').strip()
+CASHFREE_ENV = os.environ.get('CASHFREE_ENV', 'sandbox').strip().lower()
+CASHFREE_API_VERSION = '2023-08-01'
 
 # ── Email (registration OTP verification) ───────────────────────────────────
 # Configure an SMTP account (Gmail app password, Brevo, SendGrid, etc.) via env:

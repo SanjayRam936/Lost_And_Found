@@ -45,6 +45,7 @@ class User(AbstractUser):
     email = models.EmailField('email address', unique=True)
     full_name = models.CharField(max_length=255, blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
+    upi_id = models.CharField(max_length=100, blank=True, default='')  # for receiving rewards
 
     # Email-ownership verification (registration OTP). Unverified accounts are
     # kept inactive so they cannot authenticate until they confirm the code.
