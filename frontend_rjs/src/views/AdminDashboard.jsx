@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, Users, Package, Sparkles, ShieldCheck, LogOut, RefreshCw, Search, PlusCircle, Layers, TrendingUp, CheckCircle2, Gift } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Sparkles, ShieldCheck, LogOut, RefreshCw, Search, PlusCircle, Layers, TrendingUp, CheckCircle2, Gift, IndianRupee } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { ShieldLogo } from '../components/ShieldLogo';
 import * as adminApi from '../api/admin';
@@ -10,7 +10,16 @@ const NAV = [
   { key: 'reports', label: 'Reports', icon: Package },
   { key: 'matches', label: 'Matches', icon: Sparkles },
   { key: 'claims', label: 'Claims', icon: ShieldCheck },
+  { key: 'payments', label: 'Payments', icon: IndianRupee },
 ];
+
+// Reward escrow_status -> readable label + Badge tone.
+const REWARD_STATUS = {
+  RELEASED: { text: 'Paid', tone: 'green' },
+  AWAITING: { text: 'Awaiting confirmation', tone: 'orange' },
+  LOCKED: { text: 'Not sent', tone: 'gray' },
+  PENDING: { text: 'Not sent', tone: 'gray' },
+};
 
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : '—');
 
@@ -134,6 +143,7 @@ export const AdminDashboard = () => {
   const [items, setItems] = useState({ lost_items: [], found_items: [] });
   const [matches, setMatches] = useState([]);
   const [claims, setClaims] = useState([]);
+  const [rewards, setRewards] = useState([]);
 
   const load = async (which) => {
     setLoading(true);
@@ -150,6 +160,7 @@ export const AdminDashboard = () => {
       else if (which === 'reports') setItems(await adminApi.getItems());
       else if (which === 'matches') setMatches(await adminApi.getMatches());
       else if (which === 'claims') setClaims(await adminApi.getClaims());
+      else if (which === 'payments') setRewards(await adminApi.getRewards());
     } catch (e) {
       setError(e?.response?.status === 403 ? 'Admin access required (staff account).' : 'Could not load data.');
     } finally {
@@ -361,6 +372,26 @@ export const AdminDashboard = () => {
               rows={claims}
               empty="No claims yet."
             />
+          )}
+
+          {tab === 'payments' && (
+            <>
+              <div className="admin-section-title"><IndianRupee size={16} color="var(--primary)" /> Reward Payments ({rewards.length})</div>
+              <Table
+                columns={[
+                  { key: 'id', label: 'ID', render: (r) => `RWD-${r.id}` },
+                  { key: 'item', label: 'Item' },
+                  { key: 'owner', label: 'Owner (pays)' },
+                  { key: 'finder', label: 'Finder (receives)' },
+                  { key: 'finder_upi', label: 'Finder UPI', render: (r) => r.finder_upi || '—' },
+                  { key: 'amount', label: 'Amount', render: (r) => `₹${Number(r.amount || 0).toLocaleString('en-IN')}` },
+                  { key: 'status', label: 'Status', render: (r) => { const s = REWARD_STATUS[r.status] || { text: r.status, tone: 'gray' }; return <Badge text={s.text} tone={s.tone} />; } },
+                  { key: 'created_at', label: 'Date', render: (r) => fmtDate(r.created_at) },
+                ]}
+                rows={rewards}
+                empty="No reward payments yet."
+              />
+            </>
           )}
         </div>
       </div>

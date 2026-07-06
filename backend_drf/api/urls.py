@@ -5,6 +5,7 @@ from drf_spectacular.views import (
 )
 from .views import (
     AdminStatsView, AdminUsersView, AdminItemsView, AdminMatchesView, AdminClaimsView,
+    AdminRewardsView,
 )
 
 
@@ -32,6 +33,7 @@ urlpatterns = [
     path('admin/items/', AdminItemsView.as_view(), name='admin-items'),
     path('admin/matches/', AdminMatchesView.as_view(), name='admin-matches'),
     path('admin/claims/', AdminClaimsView.as_view(), name='admin-claims'),
+    path('admin/rewards/', AdminRewardsView.as_view(), name='admin-rewards'),
 
     #Item Routes
     path('lost-items/', include('lost_items.urls')),

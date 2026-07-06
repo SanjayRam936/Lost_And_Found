@@ -121,3 +121,25 @@ class AdminClaimsView(APIView):
             "created_at": c.created_at,
         } for c in claims]
         return Response(data, status=status.HTTP_200_OK)
+
+
+class AdminRewardsView(APIView):
+    """GET /admin/rewards/ — every reward payment transaction (owner -> finder)."""
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        rewards = Reward.objects.select_related(
+            'claim', 'claim__match', 'claim__match__lost_item', 'claim__match__lost_item__user',
+            'claim__match__found_item', 'claim__match__found_item__user',
+        ).order_by('-id')
+        data = [{
+            "id": r.id,
+            "item": r.claim.match.lost_item.title,
+            "owner": r.claim.match.lost_item.user.email,
+            "finder": r.claim.match.found_item.user.email,
+            "finder_upi": r.claim.match.found_item.user.upi_id,
+            "amount": str(r.amount),
+            "status": r.escrow_status,
+            "created_at": r.created_at,
+        } for r in rewards]
+        return Response(data, status=status.HTTP_200_OK)
