@@ -687,17 +687,35 @@
   .admin-col2-head .c-ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: 0 0 auto; }
   .admin-col2-head h4 { margin: 0; font-size: 0.95rem; font-weight: 800; flex: 1; letter-spacing: -.01em; color: var(--text-dark); }
   .admin-col2-head .c-count { background: var(--bg-alt); border: 1px solid var(--border-light); color: var(--text-gray); font-weight: 800; font-size: 0.74rem; min-width: 24px; height: 22px; padding: 0 7px; border-radius: 11px; display: grid; place-items: center; }
-  .admin-col2-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; max-height: 470px; overflow-y: auto; }
-  .admin-icard { position: relative; border: 1px solid var(--border-light); border-radius: 11px; background: var(--bg-alt); padding: 11px 13px 11px 15px; overflow: hidden; transition: transform .14s ease, box-shadow .14s ease, border-color .14s; }
+  .admin-col2-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; max-height: 560px; overflow-y: auto; }
+  .admin-icard { position: relative; border: 1px solid var(--border-light); border-radius: 12px; background: var(--bg-alt); padding: 14px 15px 14px 17px; overflow: hidden; transition: transform .14s ease, box-shadow .14s ease, border-color .14s; }
   .admin-icard:hover { transform: translateY(-2px); box-shadow: 0 12px 22px -12px rgba(16,24,40,.2); border-color: color-mix(in srgb, var(--primary) 40%, var(--border-light)); }
   .admin-icard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--st, #94A3B8); }
+  .admin-icard-row { display: flex; gap: 12px; align-items: flex-start; }
+  .admin-icard-img { width: 58px; height: 58px; border-radius: 10px; object-fit: cover; flex: 0 0 auto; border: 1px solid var(--border-light); background: #fff; cursor: zoom-in; }
+  .admin-icard-noimg { display: grid; place-items: center; color: var(--text-light); background: var(--bg-main); font-weight: 700; font-size: 1.1rem; cursor: default; }
+  .admin-icard-main { min-width: 0; flex: 1; }
   .admin-icard-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
   .admin-icard-id { font-size: 0.72rem; font-weight: 800; color: var(--text-gray); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
-  .admin-icard-title { font-size: 0.92rem; font-weight: 700; color: var(--text-dark); letter-spacing: -.01em; margin-bottom: 3px; }
-  .admin-icard-meta { font-size: 0.75rem; color: var(--text-gray); line-height: 1.45; }
+  .admin-icard-title { font-size: 0.92rem; font-weight: 700; color: var(--text-dark); letter-spacing: -.01em; margin-bottom: 4px; }
+  .admin-icard-meta { font-size: 0.75rem; color: var(--text-gray); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .admin-icard-meta b { color: var(--text-dark); font-weight: 600; }
-  .admin-icard-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+  .admin-icard-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
   .admin-conf { font-size: 0.74rem; font-weight: 800; color: var(--primary-hover); font-variant-numeric: tabular-nums; }
+
+  /* Match comparison — lost vs found images side by side so the admin can verify. */
+  .admin-match-pair { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0 2px; }
+  .admin-match-side { flex: 1; min-width: 0; text-align: center; }
+  .admin-match-img { width: 100%; height: 78px; object-fit: cover; border-radius: 9px; border: 1px solid var(--border-light); background: #fff; cursor: zoom-in; display: block; }
+  .admin-match-img.admin-icard-noimg { height: 78px; }
+  .admin-match-cap { font-size: 0.7rem; color: var(--text-gray); margin-top: 5px; line-height: 1.35; }
+  .admin-match-cap b { color: var(--text-dark); font-weight: 700; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .admin-match-vs { color: var(--primary); font-weight: 800; flex: 0 0 auto; align-self: center; font-size: 1.1rem; }
+  .admin-match-users { font-size: 0.68rem; color: var(--text-light); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%; }
+
+  /* Table thumbnails */
+  .admin-tbl-thumb { width: 42px; height: 42px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-light); background: #fff; cursor: zoom-in; display: block; }
+  .admin-tbl-nothumb { display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 8px; border: 1px dashed var(--border-light); color: var(--text-light); }
 
   /* Recent users grid */
   .admin-users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 10px; padding: 12px; }

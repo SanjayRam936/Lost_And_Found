@@ -62,6 +62,7 @@ class AdminItemsView(APIView):
             "id": i.id, "type": "lost", "title": i.title, "category": i.category,
             "color": i.color, "location": i.location, "status": i.status,
             "user": i.user.email, "date": i.date, "created_at": i.created_at,
+            "image": i.image.url if i.image else None,
         } for i in LostItems.objects.select_related('user').order_by('-id')]
 
         found = [{
@@ -69,6 +70,7 @@ class AdminItemsView(APIView):
             "color": i.color, "location": i.location, "handover_type": i.handover_type,
             "wants_reward": i.wants_reward, "user": i.user.email, "date": i.date,
             "created_at": i.created_at,
+            "image": i.image.url if i.image else None,
         } for i in FoundItems.objects.select_related('user').order_by('-id')]
 
         return Response({"lost_items": lost, "found_items": found}, status=status.HTTP_200_OK)
@@ -86,8 +88,10 @@ class AdminMatchesView(APIView):
             "id": m.id,
             "lost_item": m.lost_item.title,
             "lost_user": m.lost_item.user.email,
+            "lost_image": m.lost_item.image.url if m.lost_item.image else None,
             "found_item": m.found_item.title,
             "found_user": m.found_item.user.email,
+            "found_image": m.found_item.image.url if m.found_item.image else None,
             "confidence_score": round(m.confidence_score, 3),
             "text_score": round(m.text_score, 3),
             "image_similarity": round(m.image_similarity, 3),

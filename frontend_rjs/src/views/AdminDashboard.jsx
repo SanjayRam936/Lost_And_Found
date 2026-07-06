@@ -68,24 +68,64 @@ const AVATAR_COLORS = ['#17A94C', '#5B21E8', '#B45309', '#1D66C9', '#DC2626', '#
 const avatarColor = (seed) => AVATAR_COLORS[Math.abs(Number(seed) || 0) % AVATAR_COLORS.length];
 const initials = (u) => (u.full_name || u.email || '?').trim().split(/\s+/).map((s) => s[0]).slice(0, 2).join('').toUpperCase();
 
-// A compact, colour-coded item card for the overview columns.
-const MiniCard = ({ prefix = '', id, title, status, meta, foot }) => {
+// Clickable image thumbnail (falls back to a dashed placeholder when no photo).
+const Thumb = ({ src, onZoom, className = 'admin-icard-img' }) =>
+  src
+    ? <img className={className} src={src} alt="" loading="lazy" onClick={() => onZoom && onZoom(src)} />
+    : <div className={`${className} admin-icard-noimg`}>—</div>;
+
+// A compact, colour-coded item card (with photo) for the overview columns.
+const MiniCard = ({ prefix = '', id, title, status, meta, image, onZoom, foot }) => {
   const tone = statusTone(status);
   return (
     <div className="admin-icard" style={{ '--st': TONE_HEX[tone] || '#94A3B8' }}>
-      <div className="admin-icard-top">
-        <span className="admin-icard-id">{prefix}{id}</span>
-        <Badge text={status || '—'} tone={tone} />
+      <div className="admin-icard-row">
+        <Thumb src={image} onZoom={onZoom} />
+        <div className="admin-icard-main">
+          <div className="admin-icard-top">
+            <span className="admin-icard-id">{prefix}{id}</span>
+            <Badge text={status || '—'} tone={tone} />
+          </div>
+          <div className="admin-icard-title">{title || 'Untitled'}</div>
+          <div className="admin-icard-meta">{meta}</div>
+          {foot}
+        </div>
       </div>
-      <div className="admin-icard-title">{title || 'Untitled'}</div>
-      <div className="admin-icard-meta">{meta}</div>
-      {foot}
+    </div>
+  );
+};
+
+// Match card: lost vs found photo side by side so the admin can eyeball the pair.
+const MatchCard = ({ m, onZoom }) => {
+  const tone = statusTone(m.status);
+  const pct = Math.round((m.confidence_score || 0) * 100);
+  return (
+    <div className="admin-icard" style={{ '--st': TONE_HEX[tone] || '#94A3B8' }}>
+      <div className="admin-icard-top">
+        <span className="admin-icard-id">MTC-{m.id}</span>
+        <Badge text={m.status || '—'} tone={tone} />
+      </div>
+      <div className="admin-match-pair">
+        <div className="admin-match-side">
+          <Thumb src={m.lost_image} onZoom={onZoom} className="admin-match-img" />
+          <div className="admin-match-cap">Lost <b>{m.lost_item}</b></div>
+        </div>
+        <span className="admin-match-vs">⇄</span>
+        <div className="admin-match-side">
+          <Thumb src={m.found_image} onZoom={onZoom} className="admin-match-img" />
+          <div className="admin-match-cap">Found <b>{m.found_item}</b></div>
+        </div>
+      </div>
+      <div className="admin-icard-foot">
+        <span className="admin-conf">{pct}% confidence</span>
+        <span className="admin-match-users">{(m.lost_user || '').split('@')[0]} ↔ {(m.found_user || '').split('@')[0]}</span>
+      </div>
     </div>
   );
 };
 
 export const AdminDashboard = () => {
-  const { handleLogout } = useAppContext();
+  const { handleLogout, openImage } = useAppContext();
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -184,7 +224,7 @@ export const AdminDashboard = () => {
                   </div>
                   <div className="admin-col2-body">
                     {items.lost_items.slice(0, 6).map((r) => (
-                      <MiniCard key={r.id} prefix="LST-" id={r.id} title={r.title} status={r.status}
+                      <MiniCard key={r.id} prefix="LST-" id={r.id} title={r.title} status={r.status} image={r.image} onZoom={openImage}
                         meta={<>{r.category} · {r.location || '—'} · by <b>{r.user}</b></>} />
                     ))}
                     {items.lost_items.length === 0 && <div className="admin-tbl-empty">No lost reports yet.</div>}
@@ -199,7 +239,7 @@ export const AdminDashboard = () => {
                   </div>
                   <div className="admin-col2-body">
                     {items.found_items.slice(0, 6).map((r) => (
-                      <MiniCard key={r.id} prefix="FND-" id={r.id} title={r.title} status={r.status}
+                      <MiniCard key={r.id} prefix="FND-" id={r.id} title={r.title} status={r.status} image={r.image} onZoom={openImage}
                         meta={<>{r.category} · {r.location || '—'} · by <b>{r.user}</b></>} />
                     ))}
                     {items.found_items.length === 0 && <div className="admin-tbl-empty">No found reports yet.</div>}
@@ -214,9 +254,7 @@ export const AdminDashboard = () => {
                   </div>
                   <div className="admin-col2-body">
                     {matches.slice(0, 6).map((m) => (
-                      <MiniCard key={m.id} prefix="MTC-" id={m.id} title={m.lost_item} status={m.status}
-                        meta={<>matched with <b>{m.found_item}</b></>}
-                        foot={<div className="admin-icard-foot"><span className="admin-conf">{Math.round((m.confidence_score || 0) * 100)}% confidence</span></div>} />
+                      <MatchCard key={m.id} m={m} onZoom={openImage} />
                     ))}
                     {matches.length === 0 && <div className="admin-tbl-empty">No matches yet.</div>}
                   </div>
@@ -264,6 +302,7 @@ export const AdminDashboard = () => {
               <div className="admin-section-title"><Search size={16} color="var(--primary)" /> Lost Items ({items.lost_items.length})</div>
               <Table
                 columns={[
+                  { key: 'image', label: 'Photo', render: (r) => r.image ? <img className="admin-tbl-thumb" src={r.image} alt="" loading="lazy" onClick={() => openImage(r.image)} /> : <span className="admin-tbl-nothumb">—</span> },
                   { key: 'id', label: 'ID' },
                   { key: 'title', label: 'Title' },
                   { key: 'category', label: 'Category' },
@@ -276,6 +315,7 @@ export const AdminDashboard = () => {
               <div className="admin-section-title" style={{ marginTop: '1.5rem' }}><PlusCircle size={16} color="var(--primary)" /> Found Items ({items.found_items.length})</div>
               <Table
                 columns={[
+                  { key: 'image', label: 'Photo', render: (r) => r.image ? <img className="admin-tbl-thumb" src={r.image} alt="" loading="lazy" onClick={() => openImage(r.image)} /> : <span className="admin-tbl-nothumb">—</span> },
                   { key: 'id', label: 'ID' },
                   { key: 'title', label: 'Title' },
                   { key: 'category', label: 'Category' },
@@ -293,7 +333,9 @@ export const AdminDashboard = () => {
             <Table
               columns={[
                 { key: 'id', label: 'ID' },
+                { key: 'lost_image', label: 'Lost photo', render: (m) => m.lost_image ? <img className="admin-tbl-thumb" src={m.lost_image} alt="" loading="lazy" onClick={() => openImage(m.lost_image)} /> : <span className="admin-tbl-nothumb">—</span> },
                 { key: 'lost_item', label: 'Lost' },
+                { key: 'found_image', label: 'Found photo', render: (m) => m.found_image ? <img className="admin-tbl-thumb" src={m.found_image} alt="" loading="lazy" onClick={() => openImage(m.found_image)} /> : <span className="admin-tbl-nothumb">—</span> },
                 { key: 'found_item', label: 'Found' },
                 { key: 'confidence_score', label: 'Confidence', render: (m) => `${Math.round(m.confidence_score * 100)}%` },
                 { key: 'text_score', label: 'Text', render: (m) => m.text_score },
