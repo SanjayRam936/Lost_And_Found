@@ -18,6 +18,7 @@ export const Rewards = () => {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [qr, setQr] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const load = async () => {
     if (!claimId) { setLoading(false); return; }
@@ -65,6 +66,16 @@ export const Rewards = () => {
     } finally {
       setBusy(false);
     }
+  };
+
+  // Fallback for when a UPI app blocks the tap-to-pay link: copy the finder's UPI
+  // ID so the owner can paste it into their UPI app manually.
+  const copyUpi = async () => {
+    try {
+      await navigator.clipboard.writeText(finderUpi);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch { /* clipboard unavailable */ }
   };
 
   // Owner: re-issue the confirmation code (amount already set).
@@ -179,6 +190,9 @@ export const Rewards = () => {
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: validAmount() && !busy ? 1 : 0.5 }}>
               {busy ? 'Processing…' : <><Smartphone size={18} /> Pay ₹{Number(amount || 0).toLocaleString('en-IN')} to {reward.finder_name} via UPI</>}
             </button>
+            <button type="button" className="btn-cancel" onClick={copyUpi} style={{ marginTop: '0.5rem' }}>
+              {copied ? '✓ UPI ID copied — paste it in your UPI app' : 'UPI app blocked the link? Copy UPI ID'}
+            </button>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-gray)', marginTop: '0.75rem', textAlign: 'center' }}>
               Pay from your UPI app (or scan the QR). This also sends {reward.finder_name} a code to confirm they received it.
             </p>
@@ -190,8 +204,8 @@ export const Rewards = () => {
 };
 
 const Row = ({ label, value }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px dashed var(--border-light)' }}>
-    <span style={{ color: 'var(--text-gray)', fontWeight: '600' }}>{label}</span>
-    <span style={{ fontWeight: '700', color: 'var(--text-dark)' }}>{value}</span>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px dashed var(--border-light)' }}>
+    <span style={{ color: 'var(--text-gray)', fontWeight: '600', flexShrink: 0 }}>{label}</span>
+    <span style={{ fontWeight: '700', color: 'var(--text-dark)', textAlign: 'right', wordBreak: 'break-word', minWidth: 0 }}>{value}</span>
   </div>
 );

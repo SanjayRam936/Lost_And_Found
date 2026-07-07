@@ -6,7 +6,7 @@ import { useAppContext } from '../context/AppContext';
 // user tries to log in). Confirming the 6-digit code activates the account.
 export const VerifyEmail = () => {
   const { pendingEmail, handleVerifyEmail, handleResendEmailOtp, authLoading, navigateTo } = useAppContext();
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [resendIn, setResendIn] = useState(0);
@@ -17,19 +17,9 @@ export const VerifyEmail = () => {
     return () => clearTimeout(t);
   }, [resendIn]);
 
-  const change = (i, v) => {
-    if (v.length > 1) return;
-    if (v && !/^\d$/.test(v)) return;
-    const next = [...otp]; next[i] = v; setOtp(next); setError('');
-    if (v && i < 5) document.getElementById(`ev-${i + 1}`)?.focus();
-  };
-  const keyDown = (i, e) => {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) document.getElementById(`ev-${i - 1}`)?.focus();
-  };
-
   const submit = async (e) => {
     e.preventDefault();
-    const code = otp.join('');
+    const code = otp;
     if (code.length < 6) { setError('Please enter all 6 digits.'); return; }
     const res = await handleVerifyEmail(code);
     if (!res.ok) setError(res.error || 'Invalid code. Please try again.');
@@ -40,7 +30,7 @@ export const VerifyEmail = () => {
     if (resendIn > 0) return;
     setInfo(''); setError('');
     const res = await handleResendEmailOtp();
-    if (res.ok) { setInfo('A new code has been sent to your email.'); setResendIn(30); setOtp(['', '', '', '', '', '']); }
+    if (res.ok) { setInfo('A new code has been sent to your email.'); setResendIn(30); setOtp(''); }
     else setError(res.error || 'Could not resend the code.');
   };
 
@@ -67,13 +57,11 @@ export const VerifyEmail = () => {
         </div>
 
         <form onSubmit={submit}>
-          <div className="claim-otp-input-container">
-            {otp.map((d, i) => (
-              <input key={i} id={`ev-${i}`} className="claim-otp-input" type="text" inputMode="numeric"
-                value={d} maxLength={1} placeholder="•" autoComplete="off"
-                onChange={(e) => change(i, e.target.value)} onKeyDown={(e) => keyDown(i, e)} />
-            ))}
-          </div>
+          <input
+            type="text" inputMode="numeric" className="otp-single-input"
+            value={otp} maxLength={6} placeholder="Enter 6-digit code" autoComplete="off"
+            onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+          />
 
           {error && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--error)', background: '#FEE2E2', padding: 12, borderRadius: 8, marginBottom: '1rem' }}>

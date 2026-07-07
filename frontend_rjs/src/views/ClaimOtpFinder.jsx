@@ -5,32 +5,14 @@ import { ChatBox } from '../components/ChatBox';
 
 export const ClaimOtpFinder = () => {
   const { currentMatch, handleVerifyOtp, navigateTo } = useAppContext();
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const handleOtpChange = (index, value) => {
-    if (value.length > 1) return;
-    if (value && !/^\d$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    setError('');
-    if (value !== '' && index < 5) {
-      document.getElementById(`otp-${index + 1}`)?.focus();
-    }
-  };
-
-  const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && otp[index] === '' && index > 0) {
-      document.getElementById(`otp-${index - 1}`)?.focus();
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const enteredOtp = otp.join('');
+    const enteredOtp = otp;
     if (enteredOtp.length < 6) {
       setError('Please enter all 6 digits.');
       return;
@@ -77,23 +59,16 @@ export const ClaimOtpFinder = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="glass-card fade-in">
-          <div className="claim-otp-input-container">
-            {otp.map((digit, idx) => (
-              <input
-                key={idx}
-                id={`otp-${idx}`}
-                type="text"
-                inputMode="numeric"
-                className="claim-otp-input"
-                value={digit}
-                onChange={(e) => handleOtpChange(idx, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(idx, e)}
-                maxLength={1}
-                placeholder="•"
-                autoComplete="off"
-              />
-            ))}
-          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            className="otp-single-input"
+            value={otp}
+            onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+            maxLength={6}
+            placeholder="Enter 6-digit code"
+            autoComplete="off"
+          />
 
           {error && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--error)', marginBottom: '1.5rem', backgroundColor: '#FEE2E2', padding: '12px', borderRadius: '8px' }} className="fade-in">
