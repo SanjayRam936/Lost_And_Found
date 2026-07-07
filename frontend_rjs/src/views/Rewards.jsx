@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { useAppContext } from '../context/AppContext';
-import { Gift, IndianRupee, CheckCircle, Smartphone } from 'lucide-react';
+import { Gift, IndianRupee, CheckCircle } from 'lucide-react';
 import * as rewardsApi from '../api/rewards';
 import { apiError } from '../api/client';
 
@@ -57,9 +57,8 @@ export const Rewards = () => {
     setBusy(true); setError('');
     try {
       await rewardsApi.setRewardAmount(claimId, Number(amount));
+      // Sends the OTP to the finder and moves to AWAITING, which reveals the QR.
       await rewardsApi.initiateReward(claimId);
-      const link = buildUpiLink(finderUpi, Number(amount), reward.finder_name, reward.item_title);
-      window.location.href = link;   // opens the UPI app on mobile; no-op on laptop (use the QR)
       await load();
     } catch (err) {
       setError(apiError(err, 'Could not send the reward.'));
@@ -101,8 +100,6 @@ export const Rewards = () => {
       </div></div>
     );
   }
-
-  const upiLink = finderUpi && validAmount() ? buildUpiLink(finderUpi, Number(amount), reward.finder_name, reward.item_title) : null;
 
   return (
     <div className="dashboard-wrapper">
@@ -161,40 +158,27 @@ export const Rewards = () => {
         ) : awaiting ? (
           <div>
             <div style={{ padding: '1rem', background: 'var(--primary-light)', color: 'var(--primary-hover)', borderRadius: 10, fontSize: '0.85rem', fontWeight: 600, marginBottom: '1rem' }}>
-              A confirmation code was sent to {reward.finder_name}. They’ll enter it once they receive the ₹{Number(reward.amount).toLocaleString('en-IN')} — then the reward is complete.
+              Scan the QR to pay ₹{Number(reward.amount).toLocaleString('en-IN')}. A confirmation code was sent to {reward.finder_name} — they confirm once they receive it.
             </div>
             {qr && (
-              <div style={{ textAlign: 'center', margin: '0 0 1rem', padding: '1rem', border: '1px dashed var(--border-light)', borderRadius: 12 }}>
-                <img src={qr} alt="UPI payment QR" style={{ width: 180, height: 180 }} />
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-gray)', margin: '0.5rem 0 0' }}>Not paid yet? <b>Scan to pay</b> ₹{Number(amount || 0).toLocaleString('en-IN')} on your phone.</p>
+              <div style={{ textAlign: 'center', margin: '0 0 1rem', padding: '1.25rem', border: '1px dashed var(--border-light)', borderRadius: 12 }}>
+                <img src={qr} alt="UPI payment QR" style={{ width: 210, height: 210 }} />
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-dark)', fontWeight: 700, margin: '0.6rem 0 0' }}>Scan with any UPI app to pay ₹{Number(reward.amount).toLocaleString('en-IN')}</p>
               </div>
             )}
-            {upiLink && (
-              <a className="btn-primary" href={upiLink} style={{ width: '100%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', marginBottom: '0.75rem' }}>
-                <Smartphone size={18} /> Pay again via UPI
-              </a>
-            )}
+            <button type="button" className="btn-cancel" onClick={copyUpi} style={{ marginBottom: '0.5rem' }}>
+              {copied ? '✓ UPI ID copied — paste it in your UPI app' : 'Can’t scan? Copy the finder’s UPI ID'}
+            </button>
             <button className="btn-cancel" onClick={handleResend} disabled={busy}>{busy ? 'Sending…' : 'Resend confirmation code'}</button>
           </div>
         ) : (
           <div>
-            {qr && (
-              <div style={{ textAlign: 'center', margin: '0 0 1rem', padding: '1rem', border: '1px dashed var(--border-light)', borderRadius: 12 }}>
-                <img src={qr} alt="UPI payment QR" style={{ width: 180, height: 180 }} />
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-gray)', margin: '0.5rem 0 0' }}>
-                  On a laptop? <b>Scan this QR</b> with any UPI app to pay ₹{Number(amount || 0).toLocaleString('en-IN')}.
-                </p>
-              </div>
-            )}
             <button className="btn-submit" disabled={!validAmount() || busy} onClick={handleSend}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: validAmount() && !busy ? 1 : 0.5 }}>
-              {busy ? 'Processing…' : <><Smartphone size={18} /> Pay ₹{Number(amount || 0).toLocaleString('en-IN')} to {reward.finder_name} via UPI</>}
-            </button>
-            <button type="button" className="btn-cancel" onClick={copyUpi} style={{ marginTop: '0.5rem' }}>
-              {copied ? '✓ UPI ID copied — paste it in your UPI app' : 'UPI app blocked the link? Copy UPI ID'}
+              {busy ? 'Processing…' : <><Gift size={18} /> Pay ₹{Number(amount || 0).toLocaleString('en-IN')} Reward</>}
             </button>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-gray)', marginTop: '0.75rem', textAlign: 'center' }}>
-              Pay from your UPI app (or scan the QR). This also sends {reward.finder_name} a code to confirm they received it.
+              Tap to reveal the QR to scan &amp; pay — we&apos;ll also send {reward.finder_name} a confirmation code.
             </p>
           </div>
         )}
