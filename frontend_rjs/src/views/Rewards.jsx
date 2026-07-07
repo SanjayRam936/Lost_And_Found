@@ -5,8 +5,11 @@ import { Gift, IndianRupee, CheckCircle } from 'lucide-react';
 import * as rewardsApi from '../api/rewards';
 import { apiError } from '../api/client';
 
+// Plain person-to-person UPI link. IMPORTANT: the VPA (pa) must be RAW — never
+// URL-encode the "@" (many UPI apps parse the string naively and reject a "%40"
+// VPA as invalid). Only pn/tn are encoded (for spaces). No merchant fields.
 const buildUpiLink = (vpa, amount, name, item) =>
-  `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(name || 'Finder')}&am=${amount}&cu=INR&tn=${encodeURIComponent('Reward for ' + (item || 'item'))}`;
+  `upi://pay?pa=${(vpa || '').trim()}&pn=${encodeURIComponent(name || 'Finder')}&am=${amount}&cu=INR&tn=${encodeURIComponent('Reward for ' + (item || 'item'))}`;
 
 export const Rewards = () => {
   const { navigateTo, currentClaim } = useAppContext();
@@ -19,6 +22,7 @@ export const Rewards = () => {
   const [busy, setBusy] = useState(false);
   const [qr, setQr] = useState('');
   const [copied, setCopied] = useState(false);
+  const [qrNonce, setQrNonce] = useState(() => Date.now());  // bumped for a fresh QR / new tr
 
   const load = async () => {
     if (!claimId) { setLoading(false); return; }
@@ -41,9 +45,10 @@ export const Rewards = () => {
     const vpa = reward?.finder_upi_id || '';
     const n = Number(amount);
     if (!vpa || !(n >= 1 && n <= 100000)) { setQr(''); return; }
+    void qrNonce;   // dependency only, so the "fresh QR" button re-renders the image
     const link = buildUpiLink(vpa, n, reward?.finder_name, reward?.item_title);
     QRCode.toDataURL(link, { width: 220, margin: 1 }).then(setQr).catch(() => setQr(''));
-  }, [reward, amount]);
+  }, [reward, amount, qrNonce, claimId]);
 
   const isOwner = reward?.role === 'owner';
   const released = reward?.escrow_status === 'RELEASED';
@@ -56,6 +61,7 @@ export const Rewards = () => {
     if (!validAmount() || !finderUpi) return;
     setBusy(true); setError('');
     try {
+      setQrNonce(Date.now());   // fresh QR / transaction reference for this attempt
       await rewardsApi.setRewardAmount(claimId, Number(amount));
       // Sends the OTP to the finder and moves to AWAITING, which reveals the QR.
       await rewardsApi.initiateReward(claimId);
@@ -77,10 +83,12 @@ export const Rewards = () => {
     } catch { /* clipboard unavailable */ }
   };
 
-  // Owner: re-issue the confirmation code (amount already set).
+  // Owner: re-issue the confirmation code (saving the current amount too, so a
+  // changed amount is reflected in the reward + the finder's code).
   const handleResend = async () => {
     setBusy(true); setError('');
     try {
+      if (validAmount()) await rewardsApi.setRewardAmount(claimId, Number(amount));
       await rewardsApi.initiateReward(claimId);
       await load();
     } catch (err) {
@@ -118,7 +126,7 @@ export const Rewards = () => {
           {isOwner && <Row label="Finder UPI ID" value={finderUpi || 'Not added yet'} />}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginTop: '0.5rem' }}>
             <span style={{ color: 'var(--text-gray)', fontWeight: '600', fontSize: '1.1rem' }}>Reward Amount</span>
-            {isOwner && !released && !awaiting ? (
+            {isOwner && !released ? (
               <div style={{ position: 'relative', width: '100%', maxWidth: '200px' }}>
                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-gray)', fontWeight: '600' }}>₹</span>
                 <input type="text" value={amount}
@@ -132,7 +140,7 @@ export const Rewards = () => {
               </span>
             )}
           </div>
-          {isOwner && !released && !awaiting && amount && !validAmount() && (
+          {isOwner && !released && amount && !validAmount() && (
             <div style={{ color: 'var(--error)', fontSize: '0.75rem', marginTop: '6px', textAlign: 'right' }}>Enter ₹1 – ₹1,00,000</div>
           )}
         </div>
@@ -158,12 +166,15 @@ export const Rewards = () => {
         ) : awaiting ? (
           <div>
             <div style={{ padding: '1rem', background: 'var(--primary-light)', color: 'var(--primary-hover)', borderRadius: 10, fontSize: '0.85rem', fontWeight: 600, marginBottom: '1rem' }}>
-              Scan the QR to pay ₹{Number(reward.amount).toLocaleString('en-IN')}. A confirmation code was sent to {reward.finder_name} — they confirm once they receive it.
+              Scan the QR to pay ₹{Number(amount || 0).toLocaleString('en-IN')}. A confirmation code was sent to {reward.finder_name} — they confirm once they receive it.
             </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-gray)', margin: '-0.5rem 0 1rem', textAlign: 'center' }}>
+              Changed the amount above? Tap <b>Resend</b> to refresh the QR &amp; code.
+            </p>
             {qr && (
               <div style={{ textAlign: 'center', margin: '0 0 1rem', padding: '1.25rem', border: '1px dashed var(--border-light)', borderRadius: 12 }}>
                 <img src={qr} alt="UPI payment QR" style={{ width: 210, height: 210 }} />
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-dark)', fontWeight: 700, margin: '0.6rem 0 0' }}>Scan with any UPI app to pay ₹{Number(reward.amount).toLocaleString('en-IN')}</p>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-dark)', fontWeight: 700, margin: '0.6rem 0 0' }}>Scan with any UPI app to pay ₹{Number(amount || 0).toLocaleString('en-IN')}</p>
               </div>
             )}
             <button type="button" className="btn-cancel" onClick={copyUpi} style={{ marginBottom: '0.5rem' }}>
