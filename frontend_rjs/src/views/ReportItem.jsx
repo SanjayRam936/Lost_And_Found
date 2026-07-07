@@ -55,6 +55,9 @@ export const ReportItem = () => {
     // photo/date/time, IMEI 15 digits) come from the reusable hook.
     const e = { ...clientValidate(reportForm, isFound) };
 
+    // Color is required.
+    if (!reportForm.color) e.color = 'Please select a color.';
+
     // Location: route needs both endpoints resolved; exact needs a picked point.
     if (isRoute) {
       if (reportForm.sourceLat == null || reportForm.sourceLng == null) e.source = 'Enter a valid source location.';
@@ -174,13 +177,16 @@ export const ReportItem = () => {
                  )}
               </div>
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                 <label className="form-label">Color <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-gray)'}}>(Optional)</span></label>
-                 <CustomSelect
-                   value={reportForm.color}
-                   onChange={(val) => update({ color: val })}
-                   options={COLOR_OPTIONS}
-                   placeholder="Select color..."
-                 />
+                 <label className="form-label">Color <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--error, #DC2626)'}}>(Required)</span></label>
+                 <div style={invalid('color') ? { border: '1px solid var(--error, #DC2626)', borderRadius: 8 } : undefined}>
+                   <CustomSelect
+                     value={reportForm.color}
+                     onChange={(val) => update({ color: val }, 'color')}
+                     options={COLOR_OPTIONS}
+                     placeholder="Select color..."
+                   />
+                 </div>
+                 {errText('color')}
               </div>
             </div>
 
